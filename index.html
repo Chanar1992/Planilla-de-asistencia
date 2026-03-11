@@ -837,6 +837,13 @@ function isAdmin(){ return curUser&&(curUser.role==='admin'||curUser.role==='sup
 function isProfesor(){ return curUser&&curUser.role==='profesor'; }
 function canManageUsers(){ return isAdmin(); }
 function canManageCourses(){ return isAdmin(); }
+function canAddStudents(c){
+  // Admin can add students to any course
+  if(isAdmin()) return true;
+  // Profesor can add students only to their assigned courses
+  if(isProfesor()) return (curUser.courses||[]).includes(c);
+  return false;
+}
 function canEditAtt(c){
   // superadmin & admin: full edit on all courses
   if(isAdmin()) return true;
@@ -929,7 +936,7 @@ function doLogout(){
 function buildHeaderBtns(){
   const c=document.getElementById('headerBtns');
   let html='';
-  if(canManageCourses()) html+=`<button class="hbtn hb-ghost" onclick="openAddStudent()">＋ Alumno</button>`;
+  if(canAddStudents(curC)) html+=`<button class="hbtn hb-ghost" onclick="openAddStudent()">＋ Alumno</button>`;
   if(canManageUsers())   html+=`<button class="hbtn hb-purple" onclick="openUsersOv()">👥 Usuarios</button>`;
   html+=`<button class="hbtn hb-orange" onclick="openOv('backupOv')">☁ Backup</button>`;
   html+=`<button class="hbtn hb-blue" onclick="exportCSV()">↓ CSV</button>`;
@@ -1028,7 +1035,7 @@ function buildCourseSelect(){
   if(!vc[curC]&&sorted.length) curC=sorted[0];
   sel.value=curC;
 }
-function changeCourse(){ curC=document.getElementById('courseSelect').value; renderTable(); }
+function changeCourse(){ curC=document.getElementById('courseSelect').value; buildHeaderBtns(); renderTable(); }
 
 // Open new course modal
 function openAddCourse(){
@@ -1397,7 +1404,7 @@ function applyNoClassDay(type, text){
 // STUDENTS
 // ════════════════════════════════════════════════
 function openAddStudent(){
-  if(!canManageCourses()){ showToast('Sin permisos','err'); return; }
+  if(!canAddStudents(curC)){ showToast('Sin permisos para agregar alumnos a este curso','err'); return; }
   const vc=visibleCourses();
   document.getElementById('s_course').innerHTML=Object.keys(vc).map(k=>`<option value="${k}">${vc[k].name}</option>`).join('');
   document.getElementById('s_course').value=curC;
@@ -1414,6 +1421,7 @@ function saveStudent(){
   const course=document.getElementById('s_course').value;
   const num=parseInt(document.getElementById('s_num').value)||1;
   if(!name){ showToast('Ingresa el nombre','err'); return; }
+  if(!canAddStudents(course)){ showToast('Sin permisos para agregar alumnos a este curso','err'); return; }
   const sts=eD().students;
   if(!sts[course]) sts[course]=[];
   if(sts[course].length>=MAX_ST){ showToast(`Máximo ${MAX_ST} alumnos`,'err'); return; }
