@@ -101,6 +101,10 @@ tbody tr:hover td.fx1,tbody tr:hover td.fx2,tbody tr:hover td.fx3{background:#d8
 .ac:hover{transform:scale(1.22);box-shadow:0 2px 8px rgba(0,0,0,.25)}
 .s0{background:var(--red);color:#fff}.s1{background:var(--yellow);color:#fff}
 .s2{background:var(--purple);color:#fff}.s3{background:var(--green);color:#fff}
+.sn{background:transparent;border:2px dashed #b0c0d8;color:#b0c0d8}
+.sn:hover{border-color:#7a9ac8;color:#7a9ac8}
+.s4{background:repeating-linear-gradient(45deg,#4a5a7a,#4a5a7a 3px,#2a3a5a 3px,#2a3a5a 7px);color:#c8d8f0;cursor:not-allowed;font-size:11px;border:1px solid #3a4a6a}
+.s4:hover{transform:none;box-shadow:none}
 .off{background:#d8e2ec;color:#8090a8;cursor:default;font-size:9px;width:20px;height:20px}
 .off:hover{transform:none;box-shadow:none}
 .ghost{opacity:0;pointer-events:none}
@@ -329,7 +333,7 @@ tr.er td.fx2{color:#9aaccf!important;font-style:italic;font-size:11px}
       <div class="info-box">
         <label>Curso</label>
         <select id="courseSelect" onchange="changeCourse()"></select>
-        <button class="hbtn hb-ghost" id="addCourseBtn" style="padding:3px 9px;font-size:11px;" onclick="addCourse()">+</button>
+        <button class="hbtn hb-ghost" id="addCourseBtn" style="padding:3px 9px;font-size:11px;" onclick="openAddCourse()">+</button>
       </div>
       <div class="info-box">
         <label>Fecha</label>
@@ -370,10 +374,12 @@ tr.er td.fx2{color:#9aaccf!important;font-style:italic;font-size:11px}
       </table>
       <div class="leg">
         <span class="leg-t">Leyenda:</span>
-        <div class="li"><div class="ld" style="background:#d63031">✕</div><span>0 — No asistió</span></div>
-        <div class="li"><div class="ld" style="background:#f0a020">⏱</div><span>1 — Tardanza s/justificar</span></div>
-        <div class="li"><div class="ld" style="background:#7c6fcd">✔</div><span>2 — Tardanza justificada</span></div>
-        <div class="li"><div class="ld" style="background:#2da44e">●</div><span>3 — Asistió puntualmente</span></div>
+        <div class="li"><div class="ld" style="background:#2da44e">●</div><span>Asistió puntualmente</span></div>
+        <div class="li"><div class="ld sn" style="width:22px;height:22px;border-radius:50%"></div><span>Sin registrar</span></div>
+        <div class="li"><div class="ld" style="background:#d63031">✕</div><span>No asistió</span></div>
+        <div class="li"><div class="ld" style="background:#f0a020">⏱</div><span>Tardanza s/justificar</span></div>
+        <div class="li"><div class="ld" style="background:#7c6fcd">✔</div><span>Tardanza justificada</span></div>
+        <div class="li"><div class="ld s4" style="width:22px;height:22px;border-radius:50%">⊘</div><span>Sin clases (no cuenta)</span></div>
         <div style="margin-left:auto;font-size:10px;color:#6080a0">Click en celda para cambiar estado · Máx. 35 alumnos/curso</div>
       </div>
     </div>
@@ -561,6 +567,66 @@ tr.er td.fx2{color:#9aaccf!important;font-style:italic;font-size:11px}
   </div>
 </div>
 
+<!-- ADD COURSE OVERLAY -->
+<div class="ov" id="addCourseOv">
+  <div class="modal">
+    <div class="modal-title">📚 Agregar Curso</div>
+    <div class="mrow">
+      <div class="fg">
+        <label>Año</label>
+        <select class="fi" id="ac_year" onchange="updateCoursePreview()">
+          <option value="1">1° Año</option>
+          <option value="2">2° Año</option>
+          <option value="3">3° Año</option>
+          <option value="4">4° Año</option>
+          <option value="5">5° Año</option>
+          <option value="6">6° Año</option>
+          <option value="7">7° Año</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>División</label>
+        <select class="fi" id="ac_div" onchange="updateCoursePreview()">
+          <option value="A">División A</option>
+          <option value="B">División B</option>
+          <option value="C">División C</option>
+          <option value="D">División D</option>
+          <option value="E">División E</option>
+          <option value="F">División F</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg">
+      <label>Nombre personalizado (opcional)</label>
+      <input class="fi" id="ac_name" placeholder="Ej: 1° A — Matemáticas (dejar vacío para nombre automático)">
+    </div>
+    <div style="background:#f0f4f8;border-radius:8px;padding:10px 12px;font-size:12px;color:#4a5a7a;margin-bottom:8px">
+      📋 El curso se identificará como: <b id="ac_preview">1A</b>
+    </div>
+    <div class="mfoot">
+      <button class="mb mb-c" onclick="closeOv('addCourseOv')">Cancelar</button>
+      <button class="mb mb-s" onclick="saveCourse()">✓ Crear Curso</button>
+    </div>
+  </div>
+</div>
+
+<!-- FESTIVOS OVERLAY -->
+<div class="ov" id="festivosOv">
+  <div class="modal wide" style="max-width:680px">
+    <div class="modal-title">📅 Feriados Nacionales Argentina 2026</div>
+    <div style="font-size:11px;color:#6b7a9a;margin-bottom:14px">Ley N° 27.399 y Resolución 164/2025 de Jefatura de Gabinete — Boletín Oficial 26/12/2025. Seleccioná los feriados que apliquen a tu establecimiento y aplicálos al mes activo.</div>
+    <div id="festivosList" style="display:flex;flex-direction:column;gap:6px;max-height:380px;overflow-y:auto;padding-right:4px"></div>
+    <div style="display:flex;gap:8px;margin-top:14px;align-items:center;flex-wrap:wrap">
+      <button class="mb" style="background:#e8eef8;color:#3a4a6a;font-size:12px;padding:7px 14px" onclick="selectAllFestivos(true)">✓ Seleccionar todos</button>
+      <button class="mb" style="background:#e8eef8;color:#3a4a6a;font-size:12px;padding:7px 14px" onclick="selectAllFestivos(false)">✕ Deseleccionar</button>
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <button class="mb mb-c" onclick="closeOv('festivosOv')">Cerrar</button>
+        <button class="mb mb-s" onclick="applyFestivos()">⊘ Aplicar al mes activo</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ADD STUDENT OVERLAY -->
 <div class="ov" id="addStudOv">
   <div class="modal">
@@ -624,9 +690,9 @@ const MONTHS = [
   {i:10,n:'Noviembre'},{i:11,n:'Diciembre'}
 ];
 const DW = ['D','L','M','M','J','V','S'];
-const SICONS = ['✕','⏱','✔','●'];
-const SCLS   = ['s0','s1','s2','s3'];
-const STIPS  = ['No asistió','Tardanza s/just.','Tardanza just.','Puntual'];
+const SICONS = ['✕','⏱','✔','●','⊘'];
+const SCLS   = ['s0','s1','s2','s3','s4'];
+const STIPS  = ['No asistió','Tardanza s/just.','Tardanza just.','Puntual','Sin clases (no cuenta)'];
 const STHDRS = ['Asist.','% Asist.','Faltas','Asist. J','Asist. I'];
 const MAX_ST = 35;
 const Y = new Date().getFullYear();
@@ -648,7 +714,7 @@ const ROLES = {
 // STATE
 // ════════════════════════════════════════════════
 let DB = loadDB();
-let curM = 4, curC = 'A', curEst = null, curUser = null, noteDay = new Date().getDate();
+let curM = 4, curC = '1A', curEst = null, curUser = null, noteDay = new Date().getDate();
 
 // ════════════════════════════════════════════════
 // DATABASE INIT
@@ -680,9 +746,13 @@ function buildFreshDB() {
 
   // Build est1 data
   db.data['est1'] = {
-    courses: { A:{name:'Curso A'}, B:{name:'Curso B'}, C:{name:'Curso C'} },
+    courses: {
+      '1A':{name:'1° A',year:1,div:'A'},
+      '1B':{name:'1° B',year:1,div:'B'},
+      '2A':{name:'2° A',year:2,div:'A'}
+    },
     students: {
-      A: [
+      '1A': [
         {id:'s1',code:'Cod.001',name:'Juan García',num:1},
         {id:'s2',code:'Cod.002',name:'Pedro López',num:2},
         {id:'s3',code:'Cod.003',name:'Jhon Martínez',num:3},
@@ -694,16 +764,16 @@ function buildFreshDB() {
         {id:'s9',code:'Cod.009',name:'Luis Vargas',num:9},
         {id:'s10',code:'Cod.010',name:'Nuri Castillo',num:10},
       ],
-      B:[], C:[]
+      '1B':[], '2A':[]
     },
     att: {}, notes: {}
   };
 
-  // Seed attendance
-  const k=`A_${Y}_4`;
+  // Seed attendance for 1A
+  const k=`1A_${Y}_4`;
   db.data['est1'].att[k]={};
   const seed=[[3,3,1,0,0,3,3,3,0,3,0,3,0,3,0,3,3,3,3,3,3],[1,3,3,3,3,1,0,0,3,3,1,0,3,3,3,0,3,3,3,3,0],[1,3,3,3,1,1,0,3,3,0,3,3,1,0,3,3,3,0,3,3,1],[1,3,0,0,0,3,0,3,0,3,3,0,3,3,0,3,3,0,3,3,1],[3,1,0,3,1,3,3,3,3,0,0,0,3,3,3,3,0,3,3,3,3],[0,3,3,3,3,3,3,0,3,3,3,0,0,0,3,3,3,3,3,3,0],[0,3,0,0,1,1,0,3,0,3,3,3,3,0,0,0,0,0,0,3,0],[3,1,3,3,3,3,3,3,3,0,3,3,0,3,0,0,0,3,3,3,3],[3,0,3,1,3,0,3,0,3,3,3,3,3,3,3,3,0,3,3,3,3],[3,0,0,3,0,0,3,1,3,3,3,3,3,1,3,0,0,3,3,3,3]];
-  db.data['est1'].students['A'].forEach((st,si)=>{
+  db.data['est1'].students['1A'].forEach((st,si)=>{
     let wi=0;
     for(let d=1;d<=dim(Y,4);d++){
       if(isWk(Y,4,d)) continue;
@@ -712,7 +782,7 @@ function buildFreshDB() {
     }
   });
 
-  db.data['est2'] = { courses:{A:{name:'Curso A'}}, students:{A:[]}, att:{}, notes:{} };
+  db.data['est2'] = { courses:{'1A':{name:'1° A',year:1,div:'A'}}, students:{'1A':[]}, att:{}, notes:{} };
   return db;
 }
 
@@ -734,14 +804,30 @@ function getStudents(c){ return (eD().students||{})[c]||[]; }
 function getAtt(c,y,m,sid,d){
   const k=`${c}_${y}_${m}`;
   const att=eD().att; if(!att[k]) att[k]={};
-  const v=att[k][`${sid}_${d}`]; return v!==undefined?v:3;
+  const v=att[k][`${sid}_${d}`]; return v!==undefined?v:null;
 }
 function setAtt(c,y,m,sid,d,v){
   const k=`${c}_${y}_${m}`;
   const att=eD().att; if(!att[k]) att[k]={};
   att[k][`${sid}_${d}`]=v; saveDB();
 }
-function cycleAtt(c,y,m,sid,d){ setAtt(c,y,m,sid,d,(getAtt(c,y,m,sid,d)+1)%4); renderTable(); }
+function cycleAtt(c,y,m,sid,d){
+  const cur=getAtt(c,y,m,sid,d);
+  // Cycle: null→3(puntual)→0(ausente)→1(tardanza s/j)→2(tardanza j)→null
+  let next;
+  if(cur===null) next=3;
+  else if(cur===3) next=0;
+  else if(cur===2) next=null;
+  else next=cur+1;
+  if(next===null){
+    const k=`${c}_${y}_${m}`;
+    const att=eD().att; if(att[k]) delete att[k][`${sid}_${d}`];
+    saveDB();
+  } else {
+    setAtt(c,y,m,sid,d,next);
+  }
+  renderTable();
+}
 
 // ════════════════════════════════════════════════
 // PERMISSIONS
@@ -879,10 +965,10 @@ function switchEst(id){
   const u=curUser;
   if(u.role!=='superadmin'&&!u.estIds.includes(id)){ showToast('No tenés acceso a ese establecimiento','err'); return; }
   curEst=DB.establishments.find(e=>e.id===id);
-  if(!DB.data[id]) DB.data[id]={ courses:{A:{name:'Curso A'}}, students:{A:[]}, att:{}, notes:{} };
+  if(!DB.data[id]) DB.data[id]={ courses:{'1A':{name:'1° A',year:1,div:'A'}}, students:{'1A':[]}, att:{}, notes:{} };
   document.getElementById('estLabel').textContent=curEst.name;
   document.getElementById('bigTitle').textContent=`CONTROL DE ASISTENCIA — ${curEst.name.toUpperCase()}`;
-  curC='A'; buildCourseSelect(); renderTable(); renderNotes(); renderEstList();
+  curC='1A'; buildCourseSelect(); renderTable(); renderNotes(); renderEstList();
   closeEstOv(); showToast(`🏫 ${curEst.name}`);
 }
 function addEst(){
@@ -892,7 +978,7 @@ function addEst(){
   if(!isSuperAdmin()){ showToast('Solo el superadmin puede crear establecimientos','warn'); return; }
   const id='est'+Date.now();
   DB.establishments.push({id,name,addr});
-  DB.data[id]={ courses:{A:{name:'Curso A'}}, students:{A:[]}, att:{}, notes:{} };
+  DB.data[id]={ courses:{'1A':{name:'1° A',year:1,div:'A'}}, students:{'1A':[]}, att:{}, notes:{} };
   saveDB();
   document.getElementById('newEstName').value='';
   document.getElementById('newEstAddr').value='';
@@ -906,8 +992,8 @@ function addEst(){
 function renderTabs(){
   const bar=document.getElementById('tabsBar'); bar.innerHTML='';
   const tf=document.createElement('div');
-  tf.className='tab tab-fest'; tf.textContent='Festivos';
-  tf.onclick=()=>showToast('Los fines de semana se marcan automáticamente','inf');
+  tf.className='tab tab-fest'; tf.textContent='🗓 Festivos AR';
+  tf.onclick=()=>openFestivos();
   bar.appendChild(tf);
   MONTHS.forEach(mo=>{
     const t=document.createElement('div');
@@ -925,25 +1011,127 @@ function updateBadge(){
 // ════════════════════════════════════════════════
 // COURSE SELECT
 // ════════════════════════════════════════════════
+function courseDisplayName(k, c){
+  if(c.year && c.div) return `${c.year}° ${c.div}`;
+  return c.name || k;
+}
 function buildCourseSelect(){
   const vc=visibleCourses();
   const sel=document.getElementById('courseSelect');
-  sel.innerHTML=Object.keys(vc).map(k=>`<option value="${k}">${vc[k].name}</option>`).join('');
-  if(!vc[curC]&&Object.keys(vc).length) curC=Object.keys(vc)[0];
+  // Sort by year then div
+  const sorted=Object.keys(vc).sort((a,b)=>{
+    const ya=(vc[a].year||0)-((vc[b].year||0));
+    if(ya!==0) return ya;
+    return (vc[a].div||a).localeCompare(vc[b].div||b);
+  });
+  sel.innerHTML=sorted.map(k=>`<option value="${k}">${courseDisplayName(k,vc[k])}</option>`).join('');
+  if(!vc[curC]&&sorted.length) curC=sorted[0];
   sel.value=curC;
 }
 function changeCourse(){ curC=document.getElementById('courseSelect').value; renderTable(); }
-function addCourse(){
+
+// Open new course modal
+function openAddCourse(){
   if(!canManageCourses()){ showToast('Sin permisos para crear cursos','err'); return; }
-  const n=prompt('Letra/nombre del nuevo curso:'); if(!n) return;
-  const k=n.toUpperCase().replace(/\s/g,'').slice(0,4);
+  document.getElementById('ac_name').value='';
+  updateCoursePreview();
+  openOv('addCourseOv');
+}
+function updateCoursePreview(){
+  const y=document.getElementById('ac_year').value;
+  const d=document.getElementById('ac_div').value;
+  document.getElementById('ac_preview').textContent=`${y}° ${d}`;
+}
+function saveCourse(){
+  const year=parseInt(document.getElementById('ac_year').value);
+  const div=document.getElementById('ac_div').value;
+  const customName=document.getElementById('ac_name').value.trim();
+  const k=`${year}${div}`;
+  const name=customName||`${year}° ${div}`;
   const cs=eD().courses;
-  if(cs[k]){ showToast('Ese curso ya existe','err'); return; }
-  cs[k]={name:`Curso ${k}`};
+  if(cs[k]){ showToast(`El curso ${k} ya existe`,'err'); return; }
+  cs[k]={name,year,div};
   if(!eD().students[k]) eD().students[k]=[];
   saveDB(); buildCourseSelect();
-  document.getElementById('courseSelect').value=k; changeCourse();
-  showToast(`✓ Curso ${k} creado`);
+  curC=k; document.getElementById('courseSelect').value=k; changeCourse();
+  closeOv('addCourseOv');
+  showToast(`✓ Curso ${name} creado`);
+}
+
+// ════════════════════════════════════════════════
+// FESTIVOS NACIONALES ARGENTINA 2026
+// ════════════════════════════════════════════════
+// month index = JS month (0-based), day = day of month
+const FESTIVOS_2026 = [
+  // Ley 27.399 feriados inamovibles
+  {m:0,  d:1,  label:'Año Nuevo',                               tipo:'feriado', icon:'🎊'},
+  {m:1,  d:16, label:'Carnaval — Lunes',                        tipo:'feriado', icon:'🎭'},
+  {m:1,  d:17, label:'Carnaval — Martes',                       tipo:'feriado', icon:'🎭'},
+  {m:2,  d:24, label:'Día Nacional de la Memoria por la Verdad y la Justicia', tipo:'feriado', icon:'📅'},
+  {m:3,  d:2,  label:'Día del Veterano y Caídos en Malvinas / Jueves Santo',   tipo:'feriado', icon:'📅'},
+  {m:3,  d:3,  label:'Viernes Santo',                           tipo:'feriado', icon:'✝️'},
+  {m:4,  d:1,  label:'Día del Trabajador',                      tipo:'feriado', icon:'🔨'},
+  {m:4,  d:25, label:'Día de la Revolución de Mayo',            tipo:'feriado', icon:'🇦🇷'},
+  {m:5,  d:15, label:'Paso a la Inmortalidad del Gral. Güemes (trasladado del 17)', tipo:'feriado', icon:'⚔️'},
+  {m:5,  d:20, label:'Paso a la Inmortalidad del Gral. Belgrano', tipo:'feriado', icon:'⚔️'},
+  {m:6,  d:9,  label:'Día de la Independencia',                 tipo:'feriado', icon:'🇦🇷'},
+  {m:7,  d:17, label:'Paso a la Inmortalidad del Gral. San Martín (trasladable)', tipo:'feriado', icon:'⚔️'},
+  {m:9,  d:12, label:'Día del Respeto a la Diversidad Cultural', tipo:'feriado', icon:'🌍'},
+  {m:10, d:23, label:'Día de la Soberanía Nacional (trasladado del 20)', tipo:'feriado', icon:'🇦🇷'},
+  {m:11, d:8,  label:'Inmaculada Concepción de María',          tipo:'feriado', icon:'✝️'},
+  {m:11, d:25, label:'Navidad',                                  tipo:'feriado', icon:'🎄'},
+  // Resolución 164/2025 — Días no laborables con fines turísticos
+  {m:2,  d:23, label:'Día no laborable turístico (puente 24 de marzo)', tipo:'feriado', icon:'🏖️'},
+  {m:6,  d:10, label:'Día no laborable turístico (puente 9 de julio)',  tipo:'feriado', icon:'🏖️'},
+  {m:11, d:7,  label:'Día no laborable turístico (puente 8 de diciembre)', tipo:'feriado', icon:'🏖️'},
+];
+
+function openFestivos(){
+  const list=document.getElementById('festivosList');
+  // Show only festivos that fall within school months (March-December = m 2-11)
+  // and within the current year
+  const monthNames=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  list.innerHTML=FESTIVOS_2026.map((f,i)=>{
+    const dateStr=`${String(f.d).padStart(2,'0')}/${String(f.m+1).padStart(2,'0')}/${Y}`;
+    const dayName=DW[new Date(Y,f.m,f.d).getDay()];
+    const isWeekend=isWk(Y,f.m,f.d);
+    const inSchoolRange=f.m>=2; // school months start March
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:${isWeekend?'#f0f0f4':'#fff'};border:1px solid #d8e2ec;border-radius:8px;opacity:${isWeekend?'0.5':'1'}">
+      <input type="checkbox" id="fv_${i}" value="${i}" ${inSchoolRange&&!isWeekend?'checked':''} ${isWeekend?'disabled':''} style="width:15px;height:15px;accent-color:#7c6fcd;cursor:pointer;flex-shrink:0">
+      <span style="font-size:18px;flex-shrink:0">${f.icon}</span>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:700;color:#1a2744">${f.label}</div>
+        <div style="font-size:10px;color:#6b7a9a">${dayName} ${dateStr} — ${monthNames[f.m]}${isWeekend?' (cae en fin de semana)':''}</div>
+      </div>
+      <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px;background:#f0ecff;color:#5030a0;border:1px solid #c8b8f8;flex-shrink:0">${f.tipo}</span>
+    </div>`;
+  }).join('');
+  openOv('festivosOv');
+}
+function selectAllFestivos(checked){
+  document.querySelectorAll('#festivosList input[type=checkbox]:not(:disabled)')
+    .forEach(cb=>cb.checked=checked);
+}
+function applyFestivos(){
+  const checked=[...document.querySelectorAll('#festivosList input[type=checkbox]:checked')]
+    .map(cb=>FESTIVOS_2026[parseInt(cb.value)])
+    .filter(f=>f.m===curM); // only apply festivos that match current month
+  if(!checked.length){
+    showToast(`No hay festivos seleccionados en ${mName(curM)}`,'warn');
+    return;
+  }
+  const prevNoteDay=noteDay;
+  let applied=0;
+  checked.forEach(f=>{
+    const d=f.d;
+    if(isWk(Y,f.m,d)) return;
+    noteDay=d;
+    applyNoClassDay('feriado', `${f.icon} ${f.label}`);
+    applied++;
+  });
+  noteDay=prevNoteDay;
+  closeOv('festivosOv');
+  showToast(`✅ ${applied} feriado${applied!==1?'s':''} aplicado${applied!==1?'s':''} en ${mName(curM)}`);
 }
 
 // ════════════════════════════════════════════════
@@ -992,11 +1180,20 @@ function buildBody(c,y,m,days,sts,wd){
       else if(!st){ dv.classList.add('ghost'); }
       else {
         const s=getAtt(c,y,m,st.id,d);
-        dv.classList.add(SCLS[s]); dv.textContent=SICONS[s]; dv.title=STIPS[s];
-        if(canEdit) dv.onclick=()=>cycleAtt(c,y,m,st.id,d);
-        else { dv.style.cursor='default'; dv.style.opacity='0.8'; }
-        if(s===3||s===2){ a++; dt[d].a++; } else if(s===0){ f++; dt[d].f++; } else if(s===1){ i++; dt[d].i++; }
-        if(s===2){ j++; dt[d].j++; }
+        if(s===null){
+          dv.classList.add('sn'); dv.textContent=''; dv.title='Sin registrar';
+          if(canEdit) dv.onclick=()=>cycleAtt(c,y,m,st.id,d);
+          else { dv.style.cursor='default'; }
+        } else if(s===4){
+          dv.classList.add('s4'); dv.textContent='⊘'; dv.title='Sin clases (no cuenta)';
+          dv.style.cursor='not-allowed';
+        } else {
+          dv.classList.add(SCLS[s]); dv.textContent=SICONS[s]; dv.title=STIPS[s];
+          if(canEdit) dv.onclick=()=>cycleAtt(c,y,m,st.id,d);
+          else { dv.style.cursor='default'; dv.style.opacity='0.8'; }
+          if(s===3||s===2){ a++; dt[d].a++; } else if(s===0){ f++; dt[d].f++; } else if(s===1){ i++; dt[d].i++; }
+          if(s===2){ j++; dt[d].j++; }
+        }
       }
       td.appendChild(dv); tr.appendChild(td);
     }
@@ -1016,6 +1213,7 @@ function buildSumRows(tbody,sts,days,c,y,m,dt,wd){
     for(let d=1;d<=days;d++){
       if(isWk(y,m,d)) continue;
       const s=getAtt(c,y,m,st.id,d);
+      if(s===null||s===4) continue; // sin registrar / sin clases — no cuenta
       if(s===3||s===2) a++; else if(s===0) f++; else if(s===1) i++;
       if(s===2) j++;
     } return {a,f,i,j};
@@ -1041,7 +1239,7 @@ function buildSumRows(tbody,sts,days,c,y,m,dt,wd){
 // ════════════════════════════════════════════════
 // DAY STATS (total / working / no-class / net)
 // ════════════════════════════════════════════════
-const NO_CLASS_TYPES = ['suspension','clima','feriado'];
+const NO_CLASS_TYPES = ['suspension','clima','feriado','evento'];
 
 // Returns array of day numbers (1-based) that have a no-class note in current month
 function getNoClassDays(m, y){
@@ -1125,72 +1323,74 @@ function saveNote(){
   const text=document.getElementById('noteText').value.trim();
   if(!text){ showToast('Escribe una nota primero','err'); return; }
   const type=document.getElementById('noteType').value;
+  // No-class types are auto-saved by insertTag — only handle manual saves for other types
+  if(NO_CLASS_TYPES.includes(type)){
+    applyNoClassDay(type, text);
+    return;
+  }
   const k=`${curM}_${Y}_${noteDay||1}`;
   const notes=eD().notes; if(!notes[k]) notes[k]=[];
   notes[k].push({id:'n'+Date.now(),type,text,ts:Date.now(),author:curUser.name});
   saveDB(); document.getElementById('noteText').value=''; renderNotes();
-  // If a no-class note was added, refresh stats and table percentages
-  if(NO_CLASS_TYPES.includes(type)){ updateDayStats(); renderTable(); }
   showToast('📝 Nota guardada');
 }
-function deleteNote(k,id){
-  const n=eD().notes; if(n[k]) n[k]=n[k].filter(x=>x.id!==id);
-  saveDB(); renderNotes();
-  updateDayStats(); renderTable();
+function deleteNote(k,nid){
+  const notesStore=eD().notes;
+  const note=notesStore[k]?.find(x=>x.id===nid);
+  if(notesStore[k]) notesStore[k]=notesStore[k].filter(x=>x.id!==nid);
+  // If it was a no-class note, check if there are still other no-class notes on that day
+  // If none remain, revert all students on that day from state 4 back to 3 (default)
+  if(note && NO_CLASS_TYPES.includes(note.type)){
+    const remaining=(notesStore[k]||[]).filter(n=>NO_CLASS_TYPES.includes(n.type));
+    if(!remaining.length){
+      // Parse day from key format: `${curM}_${Y}_${day}`
+      const parts=k.split('_'); const day=parseInt(parts[2]);
+      const cs=visibleCourses();
+      Object.keys(cs).forEach(c=>{
+        if(!canEditAtt(c)) return;
+        getStudents(c).forEach(st=>{
+          if(getAtt(c,Y,curM,st.id,day)===4) setAtt(c,Y,curM,st.id,day,3);
+        });
+      });
+    }
+  }
+  saveDB(); renderNotes(); updateDayStats(); renderTable();
 }
 function noteNav(d){ const days=dim(Y,curM); noteDay=((noteDay||1)+d-1+days)%days+1; renderNotes(); }
 
-// Insert tag text into textarea AND offer to bulk-mark all students on that day
+// Insert tag: for no-class types, immediately save note + mark all students as state 4
 function insertTag(text,type){
   document.getElementById('noteText').value=text;
   if(type) document.getElementById('noteType').value=type;
   document.getElementById('noteText').focus();
-  // For suspension/clima/feriado: offer to mark all students as absent (state 0) that day
-  const bulkTypes=['suspension','clima','feriado'];
-  if(bulkTypes.includes(type)){
-    showBulkConfirm(type, text);
+  // For suspension/clima/feriado/evento: auto-apply no-class to all students immediately
+  if(NO_CLASS_TYPES.includes(type)){
+    applyNoClassDay(type, text);
   }
 }
 
-// Show inline confirmation banner to mark all students absent that day
-function showBulkConfirm(type, label){
-  // Remove existing banner if any
-  const existing=document.getElementById('bulkBanner');
-  if(existing) existing.remove();
+// Apply "sin clases" state (4) to all students on noteDay and auto-save the note
+function applyNoClassDay(type, text){
   const d=noteDay||1;
-  const dateStr=`${String(d).padStart(2,'0')}/${String(curM+1).padStart(2,'0')}/${Y}`;
-  const typeNames={suspension:'Suspensión',clima:'Inclemencia climática',feriado:'Feriado'};
-  const typeName=typeNames[type]||label;
-  const banner=document.createElement('div');
-  banner.id='bulkBanner';
-  banner.style.cssText='background:#fff3cd;border:1.5px solid #f0a020;border-radius:8px;padding:10px 14px;margin:8px 0 0;display:flex;align-items:center;gap:10px;font-size:12px;font-weight:600;color:#7a4a00;animation:nIn .2s ease both;flex-wrap:wrap;';
-  banner.innerHTML=`
-    <span style="font-size:18px">⚠️</span>
-    <span style="flex:1"><b>${typeName}</b> — ¿Marcar a <b>todos los alumnos</b> como <b>ausentes</b> el día ${dateStr} en todos los cursos?</span>
-    <div style="display:flex;gap:6px;flex-shrink:0">
-      <button onclick="applyBulkAbsent()" style="background:#d63031;color:#fff;border:none;border-radius:6px;padding:6px 14px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer;">✓ Marcar todos ausentes</button>
-      <button onclick="document.getElementById('bulkBanner').remove()" style="background:#e8eef8;color:#3a4a6a;border:none;border-radius:6px;padding:6px 12px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">No</button>
-    </div>
-  `;
-  // Insert banner right above the notes input column
-  const notesBody=document.querySelector('.notes-body');
-  notesBody.parentNode.insertBefore(banner, notesBody);
-}
-
-// Mark ALL students in ALL courses (that this user can edit) as absent (state=0) on noteDay
-function applyBulkAbsent(){
-  const d=noteDay||1;
-  if(isWk(Y,curM,d)){ showToast('Ese día es fin de semana','warn'); document.getElementById('bulkBanner')?.remove(); return; }
-  const cs=visibleCourses();
-  let totalMarked=0;
+  if(isWk(Y,curM,d)){ showToast('Ese día es fin de semana','warn'); return; }
+  // Save the note automatically
+  const k=`${curM}_${Y}_${d}`;
+  const notes=eD().notes; if(!notes[k]) notes[k]=[];
+  // Avoid duplicate notes of same type on same day
+  if(!notes[k].some(n=>n.type===type)){
+    notes[k].push({id:'n'+Date.now(),type,text,ts:Date.now(),author:curUser.name});
+  }
+  // Mark all students in all editable courses as state 4 (sin clases)
+  const cs=visibleCourses(); let totalMarked=0;
   Object.keys(cs).forEach(c=>{
     if(!canEditAtt(c)) return;
-    const sts=getStudents(c);
-    sts.forEach(st=>{ setAtt(c,Y,curM,st.id,d,0); totalMarked++; });
+    getStudents(c).forEach(st=>{ setAtt(c,Y,curM,st.id,d,4); totalMarked++; });
   });
-  document.getElementById('bulkBanner')?.remove();
-  renderTable();
-  showToast(`✓ ${totalMarked} alumno${totalMarked!==1?'s':''} marcado${totalMarked!==1?'s':''} ausente${totalMarked!==1?'s':''} el día ${d}/${curM+1}`);
+  saveDB();
+  document.getElementById('noteText').value='';
+  renderNotes(); renderTable();
+  const typeNames={suspension:'Suspensión',clima:'Clima',feriado:'Feriado',evento:'Evento'};
+  showToast(`⊘ ${typeNames[type]||type} — ${totalMarked} alumno${totalMarked!==1?'s':''} marcado${totalMarked!==1?'s':''} "sin clases" el día ${d}/${curM+1}`);
 }
 
 // ════════════════════════════════════════════════
@@ -1385,11 +1585,17 @@ function buildCoursesCheckbox(containerId, selectedCourses=[]){
   const cs=getCourses();
   const c=document.getElementById(containerId);
   if(!Object.keys(cs).length){ c.innerHTML='<div style="color:#b0b8c8;font-size:12px;font-style:italic;padding:8px">No hay cursos creados en este establecimiento. Créalos primero.</div>'; return; }
-  c.innerHTML=Object.keys(cs).map(k=>`
+  // Sort by year then div
+  const sorted=Object.keys(cs).sort((a,b)=>{
+    const yd=(cs[a].year||0)-(cs[b].year||0);
+    if(yd!==0) return yd;
+    return (cs[a].div||a).localeCompare(cs[b].div||b);
+  });
+  c.innerHTML=sorted.map(k=>`
     <div class="check-item" onclick="this.querySelector('input').click()">
       <input type="checkbox" value="${k}" id="chk_${containerId}_${k}" ${selectedCourses.includes(k)?'checked':''} onclick="event.stopPropagation()">
       <label for="chk_${containerId}_${k}">${cs[k].name}</label>
-      <span class="ci-sub">Curso ${k}</span>
+      <span class="ci-sub">${cs[k].year?`${cs[k].year}° año — Div. ${cs[k].div}`:`Curso ${k}`}</span>
     </div>
   `).join('');
 }
@@ -1527,6 +1733,8 @@ function exportCSV(){
     for(let d=1;d<=days;d++){
       if(isWk(Y,m,d)) continue;
       const s=getAtt(c,Y,m,st.id,d);
+      if(s===null){ row+=`,-`; continue; }
+      if(s===4){ row+=`,⊘`; continue; }
       row+=`,${s}`;
       if(s===3||s===2) a++; else if(s===0) f++; else if(s===1) i++;
       if(s===2) j++;
