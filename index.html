@@ -732,20 +732,32 @@ function isAdmin(){ return curUser&&(curUser.role==='admin'||curUser.role==='sup
 function isProfesor(){ return curUser&&curUser.role==='profesor'; }
 function canManageUsers(){ return isAdmin(); }
 function canManageCourses(){ return isAdmin(); }
-function canEditAtt(c){ // profesor can only edit their assigned courses
+function canEditAtt(c){
+  // superadmin & admin: full edit on all courses
   if(isAdmin()) return true;
+  // profesor: only their assigned courses
   if(isProfesor()) return (curUser.courses||[]).includes(c);
   return false;
 }
-// Get courses visible to current user
+// Courses visible in the selector:
+// - superadmin/admin: ALL courses
+// - admin: all courses (can oversee teachers)
+// - profesor: only their assigned courses
 function visibleCourses(){
   const all = getCourses();
   if(isAdmin()) return all;
-  // professor sees only their assigned courses (that exist in this est)
   const mine = curUser.courses||[];
   const result = {};
   mine.forEach(c=>{ if(all[c]) result[c]=all[c]; });
-  return Object.keys(result).length?result:all; // fallback show all if none assigned yet
+  // fallback: show all if nothing assigned yet (avoids empty UI)
+  return Object.keys(result).length ? result : all;
+}
+// For admins: which teachers are under them, and which courses those teachers own
+function getTeachersUnderMe(){
+  if(!curUser) return [];
+  if(isSuperAdmin()) return DB.users.filter(u=>u.role==='profesor'&&u.estIds.includes(curEst.id));
+  if(isAdmin()) return DB.users.filter(u=>u.role==='profesor'&&u.adminOf===curUser.id&&u.estIds.includes(curEst.id));
+  return [];
 }
 
 // ════════════════════════════════════════════════
@@ -1032,7 +1044,59 @@ function saveNote(){
 }
 function deleteNote(k,id){ const n=eD().notes; if(n[k]) n[k]=n[k].filter(x=>x.id!==id); saveDB(); renderNotes(); }
 function noteNav(d){ const days=dim(Y,curM); noteDay=((noteDay||1)+d-1+days)%days+1; renderNotes(); }
-function insertTag(text,type){ document.getElementById('noteText').value=text; if(type) document.getElementById('noteType').value=type; document.getElementById('noteText').focus(); }
+
+// Insert tag text into textarea AND offer to bulk-mark all students on that day
+function insertTag(text,type){
+  document.getElementById('noteText').value=text;
+  if(type) document.getElementById('noteType').value=type;
+  document.getElementById('noteText').focus();
+  // For suspension/clima/feriado: offer to mark all students as absent (state 0) that day
+  const bulkTypes=['suspension','clima','feriado'];
+  if(bulkTypes.includes(type)){
+    showBulkConfirm(type, text);
+  }
+}
+
+// Show inline confirmation banner to mark all students absent that day
+function showBulkConfirm(type, label){
+  // Remove existing banner if any
+  const existing=document.getElementById('bulkBanner');
+  if(existing) existing.remove();
+  const d=noteDay||1;
+  const dateStr=`${String(d).padStart(2,'0')}/${String(curM+1).padStart(2,'0')}/${Y}`;
+  const typeNames={suspension:'Suspensión',clima:'Inclemencia climática',feriado:'Feriado'};
+  const typeName=typeNames[type]||label;
+  const banner=document.createElement('div');
+  banner.id='bulkBanner';
+  banner.style.cssText='background:#fff3cd;border:1.5px solid #f0a020;border-radius:8px;padding:10px 14px;margin:8px 0 0;display:flex;align-items:center;gap:10px;font-size:12px;font-weight:600;color:#7a4a00;animation:nIn .2s ease both;flex-wrap:wrap;';
+  banner.innerHTML=`
+    <span style="font-size:18px">⚠️</span>
+    <span style="flex:1"><b>${typeName}</b> — ¿Marcar a <b>todos los alumnos</b> como <b>ausentes</b> el día ${dateStr} en todos los cursos?</span>
+    <div style="display:flex;gap:6px;flex-shrink:0">
+      <button onclick="applyBulkAbsent()" style="background:#d63031;color:#fff;border:none;border-radius:6px;padding:6px 14px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer;">✓ Marcar todos ausentes</button>
+      <button onclick="document.getElementById('bulkBanner').remove()" style="background:#e8eef8;color:#3a4a6a;border:none;border-radius:6px;padding:6px 12px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">No</button>
+    </div>
+  `;
+  // Insert banner right above the notes input column
+  const notesBody=document.querySelector('.notes-body');
+  notesBody.parentNode.insertBefore(banner, notesBody);
+}
+
+// Mark ALL students in ALL courses (that this user can edit) as absent (state=0) on noteDay
+function applyBulkAbsent(){
+  const d=noteDay||1;
+  if(isWk(Y,curM,d)){ showToast('Ese día es fin de semana','warn'); document.getElementById('bulkBanner')?.remove(); return; }
+  const cs=visibleCourses();
+  let totalMarked=0;
+  Object.keys(cs).forEach(c=>{
+    if(!canEditAtt(c)) return;
+    const sts=getStudents(c);
+    sts.forEach(st=>{ setAtt(c,Y,curM,st.id,d,0); totalMarked++; });
+  });
+  document.getElementById('bulkBanner')?.remove();
+  renderTable();
+  showToast(`✓ ${totalMarked} alumno${totalMarked!==1?'s':''} marcado${totalMarked!==1?'s':''} ausente${totalMarked!==1?'s':''} el día ${d}/${curM+1}`);
+}
 
 // ════════════════════════════════════════════════
 // STUDENTS
@@ -1091,29 +1155,47 @@ function umSwitchTabById(pane){
 
 // ─── ADMINS LIST ───
 function renderAdminsList(){
-  const estAdmins = DB.users.filter(u=>(u.role==='admin'||u.role==='superadmin')&&(u.role==='superadmin'||u.estIds.includes(curEst.id)));
+  // superadmin sees all admins everywhere; admin sees admins in their est + themselves
+  const estAdmins = DB.users.filter(u=>{
+    if(u.role==='superadmin') return true;
+    if(u.role==='admin') return u.estIds.includes(curEst.id);
+    return false;
+  });
   const container = document.getElementById('adminsList');
   if(!estAdmins.length){ container.innerHTML='<div class="empty-state">No hay administradores en este establecimiento.</div>'; return; }
 
   container.innerHTML = estAdmins.map(adm=>{
     const rCfg=ROLES[adm.role];
-    // Find teachers under this admin
     const myTeachers=DB.users.filter(u=>u.role==='profesor'&&u.adminOf===adm.id&&u.estIds.includes(curEst.id));
-    const turnHtml = adm.turn?`<span class="turn-badge tb-${adm.turn==='mañana'?'mañana':adm.turn==='tarde'?'tarde':'noche'}">${adm.turn}</span>`:'';
-    const canDel = isSuperAdmin()&&adm.id!=='u_sa';
-    const canEdit = isSuperAdmin()||(isAdmin()&&curUser.id===adm.id);
+    const turn=adm.turn||'';
+    const turnCls=turn==='mañana'?'tb-mañana':turn==='tarde'?'tb-tarde':turn==='noche'?'tb-noche':'tb-mañana';
+    const turnHtml=turn?`<span class="turn-badge ${turnCls}">${turn}</span>`:'';
+
+    // Permission matrix:
+    // superadmin → can edit & delete any admin (except u_sa delete)
+    // admin → can only edit themselves
+    const canEdit = isSuperAdmin() || curUser.id===adm.id;
+    const canDel  = isSuperAdmin() && adm.id!=='u_sa';
 
     let teachersHtml='';
     if(myTeachers.length){
+      // Each teacher row also gets edit/delete if current user has permission over them
+      const teacherRows=myTeachers.map(t=>{
+        const tCanEdit=isSuperAdmin()||(isAdmin()&&curUser.id===adm.id);
+        const tCanDel =isSuperAdmin()||(isAdmin()&&curUser.id===adm.id);
+        return `<div class="teacher-mini">
+          <span style="font-size:16px">👩‍🏫</span>
+          <div class="tm-name">${t.name} <small style="color:#9aaccf;font-size:10px">(${t.username})</small></div>
+          <div class="tm-courses" style="flex:1">${(t.courses||[]).length?t.courses.map(c=>`<span class="course-chip">${getCourses()[c]?getCourses()[c].name:c}</span>`).join(' '):'<span class="course-chip empty">Sin cursos</span>'}</div>
+          <div style="display:flex;gap:4px;margin-left:6px">
+            ${tCanEdit?`<button class="icon-btn" style="width:24px;height:24px;font-size:12px" onclick="openEditUser('${t.id}');closeOv('usersOv')" title="Editar docente">✏️</button>`:''}
+            ${tCanDel ?`<button class="icon-btn danger" style="width:24px;height:24px;font-size:12px" onclick="deleteUser('${t.id}')" title="Eliminar docente">🗑️</button>`:''}
+          </div>
+        </div>`;
+      }).join('');
       teachersHtml=`<div class="group-section">
         <div class="group-section-title">👩‍🏫 Docentes a cargo (${myTeachers.length})</div>
-        ${myTeachers.map(t=>`
-          <div class="teacher-mini">
-            <span style="font-size:16px">👩‍🏫</span>
-            <div class="tm-name">${t.name} <small style="color:#9aaccf;font-size:10px">(${t.username})</small></div>
-            <div class="tm-courses">${(t.courses||[]).length?t.courses.map(c=>`<span class="course-chip">${getCourses()[c]?getCourses()[c].name:c}</span>`).join(' '):'<span class="course-chip empty">Sin cursos</span>'}</div>
-          </div>
-        `).join('')}
+        ${teacherRows}
       </div>`;
     }
 
@@ -1130,7 +1212,7 @@ function renderAdminsList(){
         </div>
         <div class="admin-actions">
           ${canEdit?`<button class="icon-btn" onclick="openEditUser('${adm.id}')" title="Editar">✏️</button>`:''}
-          ${canDel?`<button class="icon-btn danger" onclick="deleteUser('${adm.id}')" title="Eliminar">🗑️</button>`:''}
+          ${canDel ?`<button class="icon-btn danger" onclick="deleteUser('${adm.id}')" title="Eliminar">🗑️</button>`:''}
         </div>
       </div>
       ${teachersHtml}
@@ -1140,16 +1222,29 @@ function renderAdminsList(){
 
 // ─── TEACHERS LIST ───
 function renderTeachersList(){
-  const teachers=DB.users.filter(u=>u.role==='profesor'&&u.estIds.includes(curEst.id));
+  // superadmin sees all teachers; admin sees only their own teachers
+  const teachers=DB.users.filter(u=>{
+    if(u.role!=='profesor') return false;
+    if(!u.estIds.includes(curEst.id)) return false;
+    if(isSuperAdmin()) return true;
+    if(isAdmin()) return u.adminOf===curUser.id; // admin sees only their group
+    return false;
+  });
   const container=document.getElementById('teachersList');
-  if(!teachers.length){ container.innerHTML='<div class="empty-state">No hay docentes en este establecimiento.</div>'; return; }
+  if(!teachers.length){
+    container.innerHTML=`<div class="empty-state">${isAdmin()&&!isSuperAdmin()?'No hay docentes asignados a tu grupo todavía.':'No hay docentes en este establecimiento.'}</div>`;
+    return;
+  }
 
   container.innerHTML=teachers.map(t=>{
     const adminUser=DB.users.find(u=>u.id===t.adminOf);
     const myCourses=t.courses||[];
-    const canEdit=isSuperAdmin()||(isAdmin()&&(curUser.id===t.adminOf||curUser.role==='superadmin'));
-    const canDel=isSuperAdmin()||(isAdmin()&&curUser.id===t.adminOf);
-    const turnHtml=t.turn?`<span class="turn-badge tb-${t.turn==='mañana'?'mañana':t.turn==='tarde'?'tarde':'noche'}">${t.turn}</span>`:'';
+    // Admin can edit/delete teachers in their own group; superadmin can do all
+    const canEdit=isSuperAdmin()||(isAdmin()&&curUser.id===t.adminOf);
+    const canDel =isSuperAdmin()||(isAdmin()&&curUser.id===t.adminOf);
+    const turn=t.turn||'';
+    const turnCls=turn==='mañana'?'tb-mañana':turn==='tarde'?'tb-tarde':'tb-noche';
+    const turnHtml=turn?`<span class="turn-badge ${turnCls}">${turn}</span>`:'';
 
     return `<div class="teacher-assignment">
       <div class="ta-header">
@@ -1161,7 +1256,7 @@ function renderTeachersList(){
         </div>
         <div style="display:flex;gap:5px">
           ${canEdit?`<button class="icon-btn" onclick="openEditUser('${t.id}')" title="Editar">✏️</button>`:''}
-          ${canDel?`<button class="icon-btn danger" onclick="deleteUser('${t.id}')" title="Eliminar">🗑️</button>`:''}
+          ${canDel ?`<button class="icon-btn danger" onclick="deleteUser('${t.id}')" title="Eliminar">🗑️</button>`:''}
         </div>
       </div>
       <div class="ta-courses">
@@ -1216,13 +1311,15 @@ function saveNewUser(){
   const newUser = { id:uid(), username, password:pass, name, role, estIds:[curEst.id], adminOf:null, turn:'mañana', courses:[] };
   if(role==='admin'){
     newUser.turn=document.getElementById('nu_turn').value;
-    // If current user is admin (not superadmin), only superadmin can create another admin
+    // Only superadmin can create another admin
     if(!isSuperAdmin()){ showToast('Solo el superadmin puede crear administradores','warn'); return; }
   }
   if(role==='profesor'){
     newUser.adminOf=document.getElementById('nu_teacher_admin').value||null;
     newUser.turn=document.getElementById('nu_teacher_turn').value;
     newUser.courses=getCheckedCourses('nu_courses_check');
+    // If admin is creating, auto-assign to themselves if not already set
+    if(!newUser.adminOf && isAdmin() && !isSuperAdmin()) newUser.adminOf=curUser.id;
   }
   DB.users.push(newUser);
   saveDB();
@@ -1279,10 +1376,15 @@ function saveEditUser(){
 function deleteUser(id){
   const u=DB.users.find(x=>x.id===id); if(!u) return;
   if(id==='u_sa'){ showToast('No se puede eliminar el superadmin','err'); return; }
-  if(!isSuperAdmin()&&!(isAdmin()&&u.adminOf===curUser.id)){ showToast('Sin permisos','err'); return; }
+  // Permission check:
+  // superadmin can delete any user (except u_sa)
+  // admin can delete teachers that belong to their group
+  // admin can delete themselves? No — protected.
+  const canDel = isSuperAdmin() || (isAdmin() && u.role==='profesor' && u.adminOf===curUser.id);
+  if(!canDel){ showToast('Sin permisos para eliminar este usuario','err'); return; }
   if(!confirm(`¿Eliminar a "${u.name}"?`)) return;
-  // Unassign teachers under deleted admin
-  DB.users.forEach(x=>{ if(x.adminOf===id) x.adminOf=null; });
+  // Unassign teachers if deleting an admin
+  if(u.role==='admin') DB.users.forEach(x=>{ if(x.adminOf===id) x.adminOf=null; });
   DB.users=DB.users.filter(x=>x.id!==id);
   saveDB(); renderAdminsList(); renderTeachersList();
   showToast(`🗑️ "${u.name}" eliminado`,'warn');
