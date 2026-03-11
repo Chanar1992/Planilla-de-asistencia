@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control de Asistencia</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#1a2744;--navy2:#243259;--hdr:#1e3a5f;
+  --green:#2d9e4f;--green2:#25873f;--red:#d63031;
+  --yellow:#f0a020;--purple:#7c6fcd;--blue:#2563c4;
+  --border:#d0dce8;--stats:#e8f0f8;--sum:#1a3a6a;
+  --off-day:#e0d0f8; /* color for non-workday columns */
+}
+body{font-family:'Nunito',sans-serif;background:#dce6f0;color:#1a1a2e;min-height:100vh;font-size:13px}
+
+/* ─── LOGIN ─── */
+#loginScreen{position:fixed;inset:0;z-index:900;background:linear-gradient(135deg,#0d1b3e,#1a3a6a 50%,#0d2a1e);display:flex;align-items:center;justify-content:center}
+.lcard{background:rgba(255,255,255,.97);border-radius:20px;padding:44px 40px;width:400px;max-width:92vw;box-shadow:0 24px 80px rgba(0,0,0,.5);animation:lIn .4s cubic-bezier(.22,.68,0,1.2) both}
+@keyframes lIn{from{opacity:0;transform:translateY(30px) scale(.95)}to{opacity:1;transform:none}}
+.l-logo{text-align:center;margin-bottom:28px}
+.l-icon{width:64px;height:64px;border-radius:16px;background:linear-gradient(135deg,#1e3a5f,#2d9e4f);display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 12px;box-shadow:0 6px 20px rgba(29,80,168,.35)}
+.l-logo h1{font-size:20px;font-weight:900;color:#1a2744}
+.l-logo p{font-size:12px;color:#6b7a9a;margin-top:2px}
+.l-grp{display:flex;flex-direction:column;gap:4px;margin-bottom:14px}
+.l-grp label{font-size:10px;font-weight:800;color:#3a4a6a;text-transform:uppercase;letter-spacing:.08em}
+.l-grp input,.l-grp select{font-family:'Nunito',sans-serif;font-size:13px;padding:10px 12px;border:1.5px solid #c0cce0;border-radius:8px;outline:none;color:#1a2744;transition:border-color .15s;background:#f9fbff}
+.l-grp input:focus,.l-grp select:focus{border-color:var(--blue)}
+.l-err{color:var(--red);font-size:12px;font-weight:700;text-align:center;min-height:18px;margin-bottom:8px}
+.l-btn{width:100%;padding:13px;background:linear-gradient(135deg,#1e3a5f,#2d9e4f);color:#fff;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;border:none;border-radius:10px;cursor:pointer;transition:all .15s;box-shadow:0 4px 16px rgba(29,80,168,.3)}
+.l-btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(29,80,168,.4)}
+.l-hint{text-align:center;font-size:11px;color:#9aaccf;margin-top:16px}
+
+/* ─── HEADER ─── */
+.aph{background:linear-gradient(135deg,#1e3a5f,#1a2744);padding:0 16px;display:flex;align-items:center;height:52px;gap:10px;box-shadow:0 2px 8px rgba(0,0,0,.3);position:sticky;top:0;z-index:200}
+.aph-logo{font-size:20px}
+.aph-name{font-family:'JetBrains Mono',monospace;font-size:11px;color:#8ab4d8;letter-spacing:.1em;text-transform:uppercase}
+.est-badge{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px}
+.est-badge:hover{background:rgba(255,255,255,.18)}
+.user-badge{background:rgba(45,164,78,.2);border:1px solid rgba(45,164,78,.4);color:#6af0a0;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;display:flex;align-items:center;gap:4px}
+.hbtns{margin-left:auto;display:flex;gap:7px;align-items:center}
+.hbtn{font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;padding:6px 13px;border:none;border-radius:6px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px}
+.hb-ghost{background:rgba(255,255,255,.1);color:#c8d8f0;border:1px solid rgba(255,255,255,.2)}.hb-ghost:hover{background:rgba(255,255,255,.2)}
+.hb-green{background:var(--green);color:#fff}.hb-green:hover{background:var(--green2)}
+.hb-blue{background:var(--blue);color:#fff}.hb-blue:hover{background:#1d50a8}
+.hb-orange{background:#e8a020;color:#fff}.hb-orange:hover{background:#c88010}
+.hb-red{background:var(--red);color:#fff}.hb-red:hover{background:#b02020}
+
+/* ─── SHEET ─── */
+.sheet{background:#eef2f8;padding:12px 16px 0}
+
+/* ─── INFO BAR ─── */
+.info-bar{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.ibox{background:var(--navy);color:#fff;border-radius:6px;padding:6px 14px;display:flex;align-items:center;gap:10px;font-size:12px}
+.ibox label{color:#8ab4d8;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em}
+.ibox input,.ibox select{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;padding:3px 8px;border-radius:4px;outline:none}
+.ibox select option{background:#1a2744}
+
+/* ── DAYS COUNTER (new) ── */
+.days-counter{background:var(--navy);border-radius:8px;padding:8px 16px;display:flex;align-items:center;gap:18px}
+.dc-item{display:flex;flex-direction:column;align-items:center;gap:1px;min-width:52px}
+.dc-val{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;line-height:1}
+.dc-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8ab4d8}
+.dc-divider{width:1px;height:36px;background:rgba(255,255,255,.15)}
+.dc-item.total .dc-val{color:#c8d8f0}
+.dc-item.habiles .dc-val{color:#4af0a0}
+.dc-item.no-hab .dc-val{color:#ff8060}
+.dc-item.wknd .dc-val{color:#9878d8}
+
+.big-title{flex:1;text-align:center;background:var(--hdr);color:#fff;font-size:16px;font-weight:900;letter-spacing:.04em;padding:10px 14px;border-radius:8px;text-transform:uppercase;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+.month-badge{background:#1a6b3c;color:#fff;font-size:14px;font-weight:800;padding:8px 18px;border-radius:8px;min-width:165px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+
+/* ─── TABS ─── */
+.tabs-bar{display:flex;align-items:flex-end;gap:3px;padding:0 0 0 2px;overflow-x:auto;scrollbar-width:none}
+.tabs-bar::-webkit-scrollbar{display:none}
+.tab{padding:6px 14px;font-size:12px;font-weight:700;border-radius:6px 6px 0 0;cursor:pointer;border:1px solid transparent;border-bottom:none;transition:all .15s;white-space:nowrap;user-select:none}
+.tab-off{background:#b0c4d8;color:#3a4a6a;border-color:#90a8c0}.tab-off:hover{background:#c0d4e8}
+.tab-on{background:var(--green);color:#fff;border-color:var(--green2);font-size:13px}
+.tab-fest{background:#e84040;color:#fff;border-color:#c83030}
+
+/* ─── TABLE ─── */
+.table-outer{background:#fff;border:2px solid #8aaac8;border-top:3px solid var(--green);border-radius:0 8px 8px 0;overflow:auto;box-shadow:0 4px 16px rgba(0,0,0,.12);max-height:calc(100vh - 330px)}
+table{border-collapse:collapse;width:100%;min-width:1100px}
+thead th{background:#1a2744;color:#c8ddf0;font-size:11px;font-weight:700;text-align:center;padding:7px 4px;border:1px solid #2a3a5a;position:sticky;top:0;z-index:20;white-space:nowrap;letter-spacing:.04em;text-transform:uppercase}
+thead th.fx1{min-width:60px;text-align:left;padding-left:10px;position:sticky;left:0;z-index:30}
+thead th.fx2{min-width:138px;text-align:left;padding-left:8px;position:sticky;left:60px;z-index:30}
+thead th.fx3{min-width:70px;text-align:center;position:sticky;left:198px;z-index:30}
+thead th.dth{min-width:33px;font-size:10px}
+thead th.wk{background:#2a1a4a;color:#9878d8}
+/* non-workday header (suspended/holiday/climate) */
+thead th.nwd{background:#3a2060;color:#c090ff;position:relative}
+thead th.nwd::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(45deg,transparent,transparent 3px,rgba(255,255,255,.06) 3px,rgba(255,255,255,.06) 6px)}
+thead th.sth{min-width:54px;font-size:10px;background:#0a2040}
+thead tr.sub th{background:#2a3a5a;color:#7a9ac0;font-size:9px;font-weight:400;padding:3px 4px;position:sticky;top:33px;z-index:19;border-bottom:2px solid #1a2744}
+thead tr.sub th.fx1,thead tr.sub th.fx2,thead tr.sub th.fx3{z-index:29}
+thead tr.sub th.wk{background:#1e1230;color:#7858c0}
+thead tr.sub th.nwd{background:#2a1040;color:#a070e0}
+/* day note indicator row */
+thead tr.note-row th{background:#1a1030;padding:2px 3px;position:sticky;top:55px;z-index:18}
+thead tr.note-row th.fx1,thead tr.note-row th.fx2,thead tr.note-row th.fx3{background:#0e0820;z-index:28}
+
+tbody tr:nth-child(odd) td{background:#f5f8fc}
+tbody tr:nth-child(even) td{background:#e8eef6}
+tbody tr:hover td{background:#d8eaf8!important}
+td{border:1px solid var(--border);padding:4px 3px;text-align:center;vertical-align:middle;font-size:12px}
+td.fx1{position:sticky;left:0;z-index:10;font-family:'JetBrains Mono',monospace;font-size:10px;color:#3a4a7a;font-weight:700;min-width:60px;text-align:left;padding-left:10px;border-right:2px solid #8aaac8}
+td.fx2{position:sticky;left:60px;z-index:10;font-weight:700;font-size:13px;min-width:138px;text-align:left;padding-left:8px;border-right:2px solid #8aaac8}
+td.fx3{position:sticky;left:198px;z-index:10;font-family:'JetBrains Mono',monospace;font-size:10px;color:#5a6a9a;min-width:70px;border-right:2px solid #8aaac8}
+tbody tr:nth-child(odd) td.fx1,tbody tr:nth-child(odd) td.fx2,tbody tr:nth-child(odd) td.fx3{background:#f5f8fc}
+tbody tr:nth-child(even) td.fx1,tbody tr:nth-child(even) td.fx2,tbody tr:nth-child(even) td.fx3{background:#e8eef6}
+tbody tr:hover td.fx1,tbody tr:hover td.fx2,tbody tr:hover td.fx3{background:#d8eaf8!important}
+
+/* non-workday cell overlay */
+td.nwd-cell{background:rgba(180,130,255,.07)!important;position:relative}
+td.nwd-cell::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(45deg,transparent,transparent 4px,rgba(180,130,255,.08) 4px,rgba(180,130,255,.08) 8px);pointer-events:none}
+
+.ac{width:27px;height:27px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;margin:0 auto;font-size:13px;font-weight:900;transition:transform .1s,box-shadow .1s;user-select:none}
+.ac:hover{transform:scale(1.22);box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.s0{background:var(--red);color:#fff}.s1{background:var(--yellow);color:#fff}
+.s2{background:var(--purple);color:#fff}.s3{background:var(--green);color:#fff}
+.off{background:#d8e2ec;color:#8090a8;cursor:default;font-size:9px;width:20px;height:20px}.off:hover{transform:none;box-shadow:none}
+.ghost{opacity:0;pointer-events:none}
+/* non-workday cell circle */
+.ac-nwd{width:27px;height:27px;border-radius:50%;background:rgba(160,100,220,.25);border:1.5px dashed rgba(160,100,220,.5);display:flex;align-items:center;justify-content:center;margin:0 auto;font-size:10px;color:#a060d0;cursor:default}
+
+td.stc{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;min-width:54px;background:var(--stats)!important;border-left:2px solid #8aaac8}
+td.stc.ca{color:#1a6a40}td.stc.cp{color:#1a5090}td.stc.cf{color:#c02020}
+td.stc.cj{color:#5030b0}td.stc.ci{color:#c07020}
+.pw{display:flex;flex-direction:column;align-items:center;gap:2px}
+.pb{width:38px;height:4px;background:#c8d8e8;border-radius:2px;overflow:hidden}
+.pf{height:100%;border-radius:2px}
+tr.sr td{background:var(--sum)!important;color:#c8d8f0!important;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;border:1px solid #0a1a40;padding:5px 3px}
+tr.sr td.fx1,tr.sr td.fx2,tr.sr td.fx3{background:#0e1e40!important;color:#8ab4e0!important;font-size:9px;text-transform:uppercase}
+tr.sr td.fx2{text-align:left;padding-left:8px}
+tr.sr td.va{color:#4af0a0!important}tr.sr td.vp{color:#60d0ff!important}
+tr.sr td.vf{color:#ff7070!important}tr.sr td.vj{color:#c0a0ff!important}tr.sr td.vi{color:#ffc060!important}
+tr.er td{opacity:.3}tr.er td.fx2{color:#9aaccf!important;font-style:italic;font-size:11px}
+
+/* ─── LEGEND ─── */
+.leg{display:flex;align-items:center;gap:16px;padding:8px 14px;background:#1a2744;border-top:2px solid #0a1428;flex-wrap:wrap}
+.leg-t{font-size:10px;font-weight:800;color:#8ab4d8;text-transform:uppercase;letter-spacing:.1em}
+.li{display:flex;align-items:center;gap:6px;font-size:11px;color:#b0c8e8}
+.ld{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;color:#fff;flex-shrink:0}
+.ld-nwd{width:22px;height:22px;border-radius:50%;background:rgba(160,100,220,.25);border:1.5px dashed rgba(160,100,220,.6);display:flex;align-items:center;justify-content:center;font-size:11px}
+
+/* ─── NOTES PANEL ─── */
+.notes-panel{background:#fff;border:2px solid #8aaac8;border-top:3px solid #e8a020;border-radius:8px;margin:10px 0 0;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.1)}
+.notes-hdr{background:linear-gradient(135deg,#2a1a00,#5a3800);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.notes-hdr-l{display:flex;align-items:center;gap:10px}
+.notes-title{font-size:13px;font-weight:800;color:#ffd080;display:flex;align-items:center;gap:6px}
+
+/* day nav */
+.day-nav{display:flex;align-items:center;gap:6px}
+.dn-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#ffd080;width:26px;height:26px;border-radius:5px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all .12s}
+.dn-btn:hover{background:rgba(255,208,0,.2)}
+.day-chip{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#fff;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);padding:3px 12px;border-radius:14px;min-width:120px;text-align:center;cursor:pointer;transition:background .12s}
+.day-chip:hover{background:rgba(255,255,255,.18)}
+
+/* ── AFFECTS WORKDAYS TOGGLE ── */
+.deduct-info{font-size:10px;color:#ffc060;font-weight:700;background:rgba(255,160,0,.15);border:1px solid rgba(255,160,0,.3);padding:3px 10px;border-radius:10px;display:flex;align-items:center;gap:5px}
+
+.note-tags{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+/* Tag buttons now have a "affects days" indicator */
+.note-tag{font-size:10px;font-weight:700;padding:3px 10px;border-radius:12px;cursor:pointer;border:1px solid transparent;transition:all .12s;user-select:none;display:flex;align-items:center;gap:4px}
+.note-tag:hover{transform:scale(1.05)}
+.note-tag .tag-star{font-size:8px;opacity:.8}
+.nt-suspend{background:#ff4f4f;color:#fff}
+.nt-clima{background:#2563c4;color:#fff}
+.nt-feriado{background:#7c6fcd;color:#fff}
+.nt-evento{background:#2da44e;color:#fff}
+.nt-otro{background:#8a8a9a;color:#fff}
+
+.notes-body{padding:12px 16px 14px;display:flex;gap:12px;align-items:flex-start}
+.notes-list{flex:1;display:flex;flex-direction:column;gap:8px;max-height:200px;overflow-y:auto}
+.note-item{background:#fffbf0;border:1px solid #f0d888;border-left:3px solid #e8a020;border-radius:6px;padding:8px 12px;display:flex;align-items:flex-start;gap:8px;animation:nIn .2s ease both}
+@keyframes nIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.note-item.tipo-suspension{border-left-color:#d63031;background:#fff5f5}
+.note-item.tipo-clima{border-left-color:#2563c4;background:#f0f4ff}
+.note-item.tipo-feriado{border-left-color:#7c6fcd;background:#f8f5ff}
+.note-item.tipo-evento{border-left-color:#2da44e;background:#f0fff6}
+.note-meta{display:flex;flex-direction:column;gap:3px;flex-shrink:0;min-width:72px}
+.note-date{font-family:'JetBrains Mono',monospace;font-size:9px;color:#6b7a9a}
+.ntb{font-size:9px;font-weight:700;padding:2px 6px;border-radius:8px;color:#fff;width:fit-content}
+/* "afecta días" pill */
+.note-affects{font-size:9px;font-weight:700;color:#c06000;background:#fff0d0;border:1px solid #e8c060;border-radius:6px;padding:1px 6px;margin-top:2px;display:flex;align-items:center;gap:3px}
+.note-text{font-size:12px;color:#2a2a3a;flex:1;line-height:1.5}
+.note-del{background:none;border:none;cursor:pointer;color:#c0c8d8;font-size:14px;padding:0 2px;transition:color .12s;flex-shrink:0}
+.note-del:hover{color:var(--red)}
+.notes-empty{color:#b0b8c8;font-size:12px;font-style:italic;padding:10px 0}
+.notes-input-col{display:flex;flex-direction:column;gap:8px;width:310px;flex-shrink:0}
+
+/* affects-days checkbox row */
+.affects-row{display:flex;align-items:center;gap:8px;padding:6px 10px;background:#fff8e8;border:1px solid #e8d080;border-radius:7px}
+.affects-row label{font-size:11px;font-weight:700;color:#7a5000;cursor:pointer;display:flex;align-items:center;gap:6px;flex:1}
+.affects-row input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:#e8a020}
+.affects-hint{font-size:10px;color:#9a7020}
+
+.note-textarea{font-family:'Nunito',sans-serif;font-size:12px;padding:9px 10px;border:1.5px solid #d0c080;border-radius:7px;outline:none;resize:none;background:#fffef0;color:#2a2a1a;height:76px;transition:border-color .15s}
+.note-textarea:focus{border-color:#e8a020}
+.note-type-sel{font-family:'Nunito',sans-serif;font-size:12px;padding:7px 10px;border:1.5px solid #d0c080;border-radius:7px;outline:none;background:#fffef0;color:#2a2a1a}
+.note-save-btn{background:linear-gradient(135deg,#c87000,#e8a020);color:#fff;border:none;border-radius:7px;padding:9px 16px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px;justify-content:center}
+.note-save-btn:hover{background:linear-gradient(135deg,#e08010,#f0b030);transform:translateY(-1px)}
+
+/* ─── OVERLAYS / MODALS ─── */
+.ov{position:fixed;inset:0;background:rgba(0,0,20,.7);backdrop-filter:blur(4px);z-index:500;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.ov.open{opacity:1;pointer-events:all}
+.modal{background:#fff;border-radius:14px;padding:28px;width:440px;max-width:92vw;box-shadow:0 20px 60px rgba(0,0,0,.4);transform:translateY(16px) scale(.97);transition:transform .2s ease}
+.ov.open .modal{transform:none}
+.modal-title{font-size:17px;font-weight:800;color:#1a2744;margin-bottom:18px;display:flex;align-items:center;gap:8px}
+.fg{display:flex;flex-direction:column;gap:4px;flex:1;margin-bottom:12px}
+.fg label{font-size:10px;font-weight:800;color:#3a4a6a;text-transform:uppercase;letter-spacing:.08em}
+.fi{font-family:'Nunito',sans-serif;font-size:13px;padding:8px 10px;border:1.5px solid #c0cce0;border-radius:6px;outline:none;color:#1a1a2e;transition:border-color .15s}
+.fi:focus{border-color:var(--blue)}
+.mrow{display:flex;gap:10px}
+.mfoot{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+.mb{font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;padding:8px 18px;border-radius:7px;border:none;cursor:pointer;transition:all .15s}
+.mb-c{background:#e8eef8;color:#3a4a6a}.mb-c:hover{background:#d8e4f4}
+.mb-s{background:var(--green);color:#fff}.mb-s:hover{background:var(--green2)}
+
+/* establishment overlay */
+.est-ov{position:fixed;inset:0;background:rgba(0,0,20,.7);backdrop-filter:blur(4px);z-index:500;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.est-ov.open{opacity:1;pointer-events:all}
+.est-modal{background:#fff;border-radius:16px;padding:28px;width:480px;max-width:92vw;box-shadow:0 20px 60px rgba(0,0,0,.4);transform:translateY(16px) scale(.97);transition:transform .2s ease}
+.est-ov.open .est-modal{transform:none}
+.est-modal-title{font-size:17px;font-weight:800;color:#1a2744;margin-bottom:18px;display:flex;align-items:center;gap:8px}
+.est-list{display:flex;flex-direction:column;gap:8px;max-height:300px;overflow-y:auto;margin-bottom:16px}
+.est-item{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1.5px solid #d0dce8;border-radius:10px;cursor:pointer;transition:all .15s}
+.est-item:hover{border-color:var(--blue);background:#f0f4ff}
+.est-item.active{border-color:var(--green);background:#f0fff6}
+.est-icon{font-size:24px}.est-info{flex:1}
+.est-iname{font-size:14px;font-weight:700;color:#1a2744}
+.est-iaddr{font-size:11px;color:#6b7a9a}
+.est-check{color:var(--green);font-size:18px;font-weight:900}
+.est-add-row{display:flex;gap:8px}
+.est-add-input{flex:1;font-family:'Nunito',sans-serif;font-size:13px;padding:9px 12px;border:1.5px solid #c0cce0;border-radius:8px;outline:none}
+.est-add-input:focus{border-color:var(--blue)}
+
+/* users */
+.users-list{display:flex;flex-direction:column;gap:8px;max-height:220px;overflow-y:auto;margin-bottom:14px}
+.user-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid #d0dce8;border-radius:8px}
+.ui-name{flex:1;font-weight:700;font-size:13px}
+.ui-role{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px}
+.role-admin{background:#ffe0e0;color:#c02020}.role-prof{background:#e0f0ff;color:#1050a0}
+.ui-del{background:none;border:none;cursor:pointer;color:#c0c8d8;font-size:16px;transition:color .12s}
+.ui-del:hover{color:var(--red)}
+
+/* backup */
+.bg-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
+.bc{background:#f0f4f8;border:2px solid #c0cce0;border-radius:10px;padding:16px;cursor:pointer;text-align:center;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:6px}
+.bc:hover{border-color:var(--green);background:#e8f6ec}
+.bc .bi{font-size:28px}.bc .bn{font-size:13px;font-weight:800;color:#1a2744}.bc .bd{font-size:10px;color:#6b7a9a}
+
+/* toast */
+.toast{position:fixed;bottom:24px;right:24px;background:#1a2744;color:#fff;border-radius:8px;padding:11px 18px;font-size:13px;font-weight:600;z-index:999;box-shadow:0 4px 16px rgba(0,0,0,.3);transform:translateY(60px);opacity:0;transition:all .3s ease;display:flex;align-items:center;gap:8px;border-left:4px solid var(--green)}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.err{border-left-color:var(--red)}.toast.inf{border-left-color:var(--blue)}
+
+::-webkit-scrollbar{width:7px;height:7px}
+::-webkit-scrollbar-track{background:#e0eaf4}
+::-webkit-scrollbar-thumb{background:#8aaac8;border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:#5a8aac}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="lcard">
+    <div class="l-logo">
+      <div class="l-icon">📋</div>
+      <h1>AsistCtrl</h1>
+      <p>Sistema de Control de Asistencia</p>
+    </div>
+    <div class="l-grp"><label>Establecimiento</label><select id="loginEstSel"></select></div>
+    <div class="l-grp"><label>Usuario</label><input type="text" id="loginUser" placeholder="Ingresa tu usuario" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <div class="l-grp"><label>Contraseña</label><input type="password" id="loginPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <div class="l-err" id="loginErr"></div>
+    <button class="l-btn" onclick="doLogin()">Ingresar al Sistema</button>
+    <div class="l-hint">Demo: usuario <b>admin</b> / contraseña <b>1234</b></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="appRoot" style="display:none">
+
+  <!-- HEADER -->
+  <div class="aph">
+    <span class="aph-logo">📋</span>
+    <span class="aph-name">AsistCtrl</span>
+    <div class="est-badge" onclick="openEstOv()" title="Cambiar establecimiento">🏫 <span id="estLabel">—</span> ▾</div>
+    <div class="user-badge">👤 <span id="userLabel">—</span></div>
+    <div class="hbtns">
+      <button class="hbtn hb-ghost" onclick="openAddStudent()">＋ Alumno</button>
+      <button class="hbtn hb-ghost" onclick="openUsersOv()">👥 Usuarios</button>
+      <button class="hbtn hb-orange" onclick="openOv('backupOv')">☁ Backup</button>
+      <button class="hbtn hb-blue" onclick="exportCSV()">↓ CSV</button>
+      <button class="hbtn hb-red" onclick="doLogout()">⏻ Salir</button>
+    </div>
+  </div>
+
+  <!-- SHEET -->
+  <div class="sheet">
+
+    <!-- INFO BAR -->
+    <div class="info-bar">
+      <div class="ibox">
+        <label>Curso</label>
+        <select id="courseSelect" onchange="changeCourse()"></select>
+        <button class="hbtn hb-ghost" style="padding:3px 9px;font-size:11px" onclick="addCourse()">+</button>
+      </div>
+
+      <!-- DAYS COUNTER (dynamic) -->
+      <div class="days-counter">
+        <div class="dc-item total">
+          <div class="dc-val" id="dcTotal">0</div>
+          <div class="dc-lbl">Días Tot.</div>
+        </div>
+        <div class="dc-divider"></div>
+        <div class="dc-item wknd">
+          <div class="dc-val" id="dcWknd">0</div>
+          <div class="dc-lbl">Fin Sem.</div>
+        </div>
+        <div class="dc-divider"></div>
+        <div class="dc-item no-hab">
+          <div class="dc-val" id="dcNoHab">0</div>
+          <div class="dc-lbl">No Hábiles</div>
+        </div>
+        <div class="dc-divider"></div>
+        <div class="dc-item habiles">
+          <div class="dc-val" id="dcHabiles">0</div>
+          <div class="dc-lbl">✓ Hábiles</div>
+        </div>
+      </div>
+
+      <div class="big-title" id="bigTitle">CONTROL DE ASISTENCIA DE ALUMNOS</div>
+      <div class="month-badge" id="monthBadge">—</div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs-bar" id="tabsBar"></div>
+
+    <!-- TABLE -->
+    <div class="table-outer">
+      <table>
+        <thead id="thead"></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div class="leg">
+        <span class="leg-t">Leyenda:</span>
+        <div class="li"><div class="ld" style="background:#d63031">✕</div><span>0 — No asistió</span></div>
+        <div class="li"><div class="ld" style="background:#f0a020">⏱</div><span>1 — Tardanza s/justificar</span></div>
+        <div class="li"><div class="ld" style="background:#7c6fcd">✔</div><span>2 — Tardanza justificada</span></div>
+        <div class="li"><div class="ld" style="background:#2da44e">●</div><span>3 — Puntual</span></div>
+        <div class="li"><div class="ld-nwd">—</div><span>Día no hábil (nota)</span></div>
+        <div style="margin-left:auto;font-size:10px;color:#6080a0">Click en celda para cambiar estado</div>
+      </div>
+    </div>
+
+    <!-- NOTES PANEL -->
+    <div class="notes-panel">
+      <div class="notes-hdr">
+        <div class="notes-hdr-l">
+          <div class="notes-title">📝 Notas del Día</div>
+          <div class="day-nav">
+            <button class="dn-btn" onclick="noteNavDay(-1)">‹</button>
+            <div class="day-chip" id="dayChip" title="Navegá entre días del mes">—</div>
+            <button class="dn-btn" onclick="noteNavDay(1)">›</button>
+          </div>
+          <div class="deduct-info" id="deductInfo" style="display:none">⚠ Día marcado como no hábil</div>
+        </div>
+        <div class="note-tags">
+          <span style="font-size:10px;color:#ffc060;font-weight:700;margin-right:2px">Insertar:</span>
+          <span class="note-tag nt-suspend" onclick="insertTag('suspension','⛔ Suspensión de clases')">⛔ Suspensión <span class="tag-star">★</span></span>
+          <span class="note-tag nt-clima"   onclick="insertTag('clima','🌧️ Inclemencia climática')">🌧️ Clima <span class="tag-star">★</span></span>
+          <span class="note-tag nt-feriado" onclick="insertTag('feriado','📅 Día feriado / festivo')">📅 Feriado <span class="tag-star">★</span></span>
+          <span class="note-tag nt-evento"  onclick="insertTag('evento','🎉 Evento especial')">🎉 Evento</span>
+          <span class="note-tag nt-otro"    onclick="insertTag('otro','')">✏️ Otro</span>
+          <span style="font-size:10px;color:#c0a040;margin-left:4px">★ = descuenta día hábil</span>
+        </div>
+      </div>
+      <div class="notes-body">
+        <div class="notes-list" id="notesList"></div>
+        <div class="notes-input-col">
+          <select class="note-type-sel" id="noteType" onchange="updateAffectsAuto()">
+            <option value="otro">✏️ Otro</option>
+            <option value="suspension">⛔ Suspensión de clases</option>
+            <option value="clima">🌧️ Inclemencia climática</option>
+            <option value="feriado">📅 Feriado / festivo</option>
+            <option value="evento">🎉 Evento especial</option>
+          </select>
+          <textarea class="note-textarea" id="noteText" placeholder="Escribe la observación del día...&#10;Ej: Clases suspendidas por tormenta."></textarea>
+          <!-- AFFECTS WORKDAYS TOGGLE -->
+          <div class="affects-row">
+            <label for="affectsCheck">
+              <input type="checkbox" id="affectsCheck" onchange="updateAffectsHint()">
+              Descuenta este día de los días hábiles
+            </label>
+          </div>
+          <div class="affects-hint" id="affectsHint" style="font-size:10px;color:#9a7020;padding:0 2px"></div>
+          <button class="note-save-btn" onclick="saveNote()">💾 Guardar Nota</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /sheet -->
+</div><!-- /appRoot -->
+
+<!-- ESTABLISHMENTS OVERLAY -->
+<div class="est-ov" id="estOvEl">
+  <div class="est-modal">
+    <div class="est-modal-title">🏫 Establecimientos</div>
+    <div class="est-list" id="estList"></div>
+    <div class="est-add-row">
+      <input class="est-add-input" id="newEstName" placeholder="Nombre del establecimiento...">
+      <input class="est-add-input" id="newEstAddr" placeholder="Dirección (opcional)" style="flex:.7">
+      <button class="hbtn hb-green" onclick="addEst()">＋</button>
+    </div>
+    <div class="mfoot"><button class="mb mb-c" onclick="closeEstOv()">Cerrar</button></div>
+  </div>
+</div>
+
+<!-- ADD STUDENT -->
+<div class="ov" id="addOv">
+  <div class="modal">
+    <div class="modal-title">👤 Agregar Alumno</div>
+    <div class="mrow">
+      <div class="fg" style="flex:0 0 86px"><label>Código</label><input class="fi" id="iCode" placeholder="Cod.001"></div>
+      <div class="fg"><label>Nombre Completo</label><input class="fi" id="iName" placeholder="Juan García" onkeydown="if(event.key==='Enter')saveStudent()"></div>
+    </div>
+    <div class="mrow">
+      <div class="fg"><label>Curso</label><select class="fi" id="iCourse"></select></div>
+      <div class="fg" style="flex:0 0 86px"><label>Nro. Lista</label><input class="fi" type="number" id="iNum" min="1" max="35"></div>
+    </div>
+    <div class="mfoot">
+      <button class="mb mb-c" onclick="closeOv('addOv')">Cancelar</button>
+      <button class="mb mb-s" onclick="saveStudent()">✓ Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- USERS -->
+<div class="ov" id="usersOv">
+  <div class="modal" style="width:500px">
+    <div class="modal-title">👥 Usuarios</div>
+    <div class="users-list" id="usersList"></div>
+    <div style="border-top:1px solid #e0e8f0;padding-top:14px;font-size:12px;font-weight:800;color:#3a4a6a;margin-bottom:10px">➕ Nuevo Usuario</div>
+    <div class="mrow">
+      <div class="fg"><label>Usuario</label><input class="fi" id="uUser" placeholder="nombre_usuario"></div>
+      <div class="fg"><label>Contraseña</label><input class="fi" type="password" id="uPass" placeholder="••••••"></div>
+    </div>
+    <div class="mrow">
+      <div class="fg"><label>Nombre completo</label><input class="fi" id="uName" placeholder="Nombre Apellido"></div>
+      <div class="fg"><label>Rol</label><select class="fi" id="uRole"><option value="profesor">Profesor</option><option value="admin">Administrador</option></select></div>
+    </div>
+    <div class="mfoot">
+      <button class="mb mb-c" onclick="closeOv('usersOv')">Cerrar</button>
+      <button class="mb mb-s" onclick="saveUser()">✓ Agregar</button>
+    </div>
+  </div>
+</div>
+
+<!-- BACKUP -->
+<div class="ov" id="backupOv">
+  <div class="modal">
+    <div class="modal-title">☁ Backup y Restauración</div>
+    <div style="font-size:12px;color:#6b7a9a;margin-bottom:4px">Guarda o restaura todos los datos.</div>
+    <div class="bg-grid">
+      <div class="bc" onclick="backupLocal()"><div class="bi">💾</div><div class="bn">Archivo Local</div><div class="bd">Descarga .json</div></div>
+      <div class="bc" onclick="showToast('Google Drive: configurar OAuth2 en Vercel. Ver README.','inf');closeOv('backupOv')"><div class="bi">🟢</div><div class="bn">Google Drive</div><div class="bd">Requiere OAuth2</div></div>
+      <div class="bc" onclick="showToast('OneDrive: configurar MSAL en Vercel. Ver README.','inf');closeOv('backupOv')"><div class="bi">🔵</div><div class="bn">OneDrive</div><div class="bd">Requiere MSAL</div></div>
+      <div class="bc" onclick="document.getElementById('restoreF').click()"><div class="bi">🔄</div><div class="bn">Restaurar</div><div class="bd">Carga .json previo</div></div>
+    </div>
+    <input type="file" id="restoreF" accept=".json" style="display:none" onchange="doRestore(event)">
+    <div class="mfoot"><button class="mb mb-c" onclick="closeOv('backupOv')">Cerrar</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════
+// CONSTANTS
+// ══════════════════════════════════════════
+const MONTHS=[{i:2,n:'Marzo'},{i:3,n:'Abril'},{i:4,n:'Mayo'},{i:5,n:'Junio'},
+  {i:6,n:'Julio'},{i:7,n:'Agosto'},{i:8,n:'Septiembre'},{i:9,n:'Octubre'},
+  {i:10,n:'Noviembre'},{i:11,n:'Diciembre'}];
+const DW=['D','L','M','M','J','V','S'];
+const SICONS=['✕','⏱','✔','●'];
+const SCLS=['s0','s1','s2','s3'];
+const STIPS=['No asistió','Tardanza s/just.','Tardanza just.','Puntual'];
+const STHDRS=['Asist.','% Asist.','Faltas','Asist. J','Asist. I'];
+const MAX=35;
+const Y=new Date().getFullYear();
+
+// Types that DEDUCT workdays
+const DEDUCT_TYPES=new Set(['suspension','clima','feriado']);
+
+const NOTE_CFG={
+  otro:    {label:'Otro',       color:'#8a8a9a',emoji:'✏️',deducts:false},
+  suspension:{label:'Suspensión',color:'#d63031',emoji:'⛔',deducts:true},
+  clima:   {label:'Clima',      color:'#2563c4',emoji:'🌧️',deducts:true},
+  feriado: {label:'Feriado',    color:'#7c6fcd',emoji:'📅',deducts:true},
+  evento:  {label:'Evento',     color:'#2da44e',emoji:'🎉',deducts:false},
+};
+
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+let DB=loadDB(), curM=4, curC='A', curEst=null, curUser=null, noteDay=null;
+
+function loadDB(){
+  try{const r=localStorage.getItem('asistDB_v4');if(r)return JSON.parse(r);}catch(e){}
+  return buildDB();
+}
+function saveDB(){localStorage.setItem('asistDB_v4',JSON.stringify(DB));}
+
+function buildDB(){
+  const db={
+    establishments:[
+      {id:'est1',name:'Escuela N°1 — San Martín',addr:'Av. San Martín 450'},
+      {id:'est2',name:'Colegio Los Álamos',addr:'Calle Los Álamos 120'},
+    ],
+    users:[
+      {id:'u1',username:'admin',password:'1234',name:'Administrador',role:'admin'},
+      {id:'u2',username:'prof', password:'1234',name:'Profesor Demo', role:'profesor'},
+    ],
+    data:{}
+  };
+  db.data['est1']={
+    courses:{A:{name:'Curso A'},B:{name:'Curso B'},C:{name:'Curso C'}},
+    students:{A:[
+      {id:'s1',code:'Cod.001',name:'Juan García',num:1},
+      {id:'s2',code:'Cod.002',name:'Pedro López',num:2},
+      {id:'s3',code:'Cod.003',name:'Jhon Martínez',num:3},
+      {id:'s4',code:'Cod.004',name:'Andrés Rojas',num:4},
+      {id:'s5',code:'Cod.005',name:'Diana Torres',num:5},
+      {id:'s6',code:'Cod.006',name:'Sergio Muñoz',num:6},
+      {id:'s7',code:'Cod.007',name:'Nelly Gómez',num:7},
+      {id:'s8',code:'Cod.008',name:'Jorge Herrera',num:8},
+      {id:'s9',code:'Cod.009',name:'Luis Vargas',num:9},
+      {id:'s10',code:'Cod.010',name:'Nuri Castillo',num:10},
+    ],B:[],C:[]},
+    att:{},notes:{}
+  };
+  db.data['est2']={courses:{A:{name:'Curso A'}},students:{A:[]},att:{},notes:{}};
+  // seed attendance
+  const k=`A_${Y}_4`;
+  db.data['est1'].att[k]={};
+  const seed=[
+    [3,3,1,0,0,3,3,3,0,3,0,3,0,3,0,3,3,3,3,3,3],
+    [1,3,3,3,3,1,0,0,3,3,1,0,3,3,3,0,3,3,3,3,0],
+    [1,3,3,3,1,1,0,3,3,0,3,3,1,0,3,3,3,0,3,3,1],
+    [1,3,0,0,0,3,0,3,0,3,3,0,3,3,0,3,3,0,3,3,1],
+    [3,1,0,3,1,3,3,3,3,0,0,0,3,3,3,3,0,3,3,3,3],
+    [0,3,3,3,3,3,3,0,3,3,3,0,0,0,3,3,3,3,3,3,0],
+    [0,3,0,0,1,1,0,3,0,3,3,3,3,0,0,0,0,0,0,3,0],
+    [3,1,3,3,3,3,3,3,3,0,3,3,0,3,0,0,0,3,3,3,3],
+    [3,0,3,1,3,0,3,0,3,3,3,3,3,3,3,3,0,3,3,3,3],
+    [3,0,0,3,0,0,3,1,3,3,3,3,3,1,3,0,0,3,3,3,3],
+  ];
+  const sts=db.data['est1'].students['A'];
+  sts.forEach((st,si)=>{
+    let wi=0;
+    for(let d=1;d<=dim(Y,4);d++){
+      if(isWk(Y,4,d))continue;
+      if(wi<seed[si].length)db.data['est1'].att[k][`${st.id}_${d}`]=seed[si][wi];
+      wi++;
+    }
+  });
+  // sample note that deducts
+  db.data['est1'].notes[`4_${Y}_8`]=[{id:'n1',type:'clima',text:'Clases suspendidas por tormenta eléctrica.',deducts:true,ts:Date.now()-86400000*3}];
+  return db;
+}
+
+// ── Data accessors ──
+function eD(){return DB.data[curEst.id];}
+function courses(){return eD().courses||{};}
+function students(c){return(eD().students||{})[c]||[];}
+function getA(c,y,m,sid,d){
+  const k=`${c}_${y}_${m}`,att=eD().att;
+  if(!att[k])att[k]={};
+  const v=att[k][`${sid}_${d}`];return v!==undefined?v:3;
+}
+function setA(c,y,m,sid,d,v){
+  const k=`${c}_${y}_${m}`,att=eD().att;
+  if(!att[k])att[k]={};att[k][`${sid}_${d}`]=v;saveDB();
+}
+function cycleA(c,y,m,sid,d){setA(c,y,m,sid,d,(getA(c,y,m,sid,d)+1)%4);renderAll();}
+
+// ── Get non-workday set for current month ──
+// A day is a "non-workday" if there's a note for that day with deducts=true
+function getNonWorkdaySet(y,m){
+  const notes=eD().notes||{};
+  const nwd=new Set();
+  for(let d=1;d<=dim(y,m);d++){
+    if(isWk(y,m,d))continue; // weekends already off
+    const k=`${m}_${y}_${d}`;
+    const dayNotes=notes[k]||[];
+    if(dayNotes.some(n=>n.deducts))nwd.add(d);
+  }
+  return nwd;
+}
+
+// ══════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════
+function dim(y,m){return new Date(y,m+1,0).getDate();}
+function dow(y,m,d){return new Date(y,m,d).getDay();}
+function isWk(y,m,d){const w=dow(y,m,d);return w===0||w===6;}
+function mName(i){const f=MONTHS.find(x=>x.i===i);return f?f.n:'';}
+function pClr(p){return p>=80?'#1a6a40':p>=60?'#8a5010':'#a01010';}
+function pBg(p){return p>=80?'#2da44e':p>=60?'#f0a020':'#d63031';}
+
+// ══════════════════════════════════════════
+// DAYS COUNTER
+// ══════════════════════════════════════════
+function updateDaysCounter(){
+  const y=Y,m=curM,days=dim(y,m);
+  let wknd=0,nwdCount=0;
+  for(let d=1;d<=days;d++)if(isWk(y,m,d))wknd++;
+  const nwd=getNonWorkdaySet(y,m);
+  nwdCount=nwd.size;
+  const habiles=days-wknd-nwdCount;
+  document.getElementById('dcTotal').textContent=days;
+  document.getElementById('dcWknd').textContent=wknd;
+  document.getElementById('dcNoHab').textContent=nwdCount;
+  document.getElementById('dcHabiles').textContent=habiles;
+  return habiles;
+}
+
+// ══════════════════════════════════════════
+// LOGIN / LOGOUT
+// ══════════════════════════════════════════
+function populateLoginEst(){
+  const sel=document.getElementById('loginEstSel');
+  sel.innerHTML=DB.establishments.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
+}
+function doLogin(){
+  const estId=document.getElementById('loginEstSel').value;
+  const user=document.getElementById('loginUser').value.trim();
+  const pass=document.getElementById('loginPass').value;
+  const found=DB.users.find(u=>u.username===user&&u.password===pass);
+  if(!found){document.getElementById('loginErr').textContent='Usuario o contraseña incorrectos.';return;}
+  curUser=found;
+  curEst=DB.establishments.find(e=>e.id===estId);
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('appRoot').style.display='block';
+  document.getElementById('userLabel').textContent=found.name;
+  document.getElementById('estLabel').textContent=curEst.name;
+  document.getElementById('bigTitle').textContent=`CONTROL DE ASISTENCIA — ${curEst.name.toUpperCase()}`;
+  buildCourseSelect();
+  updateBadge();
+  renderTabs();
+  noteDay=new Date().getDate();if(noteDay>dim(Y,curM))noteDay=1;
+  renderAll();
+}
+function doLogout(){
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('appRoot').style.display='none';
+  document.getElementById('loginErr').textContent='';
+  document.getElementById('loginUser').value='';
+  document.getElementById('loginPass').value='';
+  curUser=null;curEst=null;
+}
+
+// ══════════════════════════════════════════
+// ESTABLISHMENTS
+// ══════════════════════════════════════════
+function openEstOv(){renderEstList();document.getElementById('estOvEl').classList.add('open');}
+function closeEstOv(){document.getElementById('estOvEl').classList.remove('open');}
+function renderEstList(){
+  document.getElementById('estList').innerHTML=DB.establishments.map(e=>`
+    <div class="est-item${e.id===curEst.id?' active':''}" onclick="switchEst('${e.id}')">
+      <div class="est-icon">🏫</div>
+      <div class="est-info"><div class="est-iname">${e.name}</div><div class="est-iaddr">${e.addr||'Sin dirección'}</div></div>
+      ${e.id===curEst.id?'<div class="est-check">✓</div>':''}
+    </div>`).join('');
+}
+function switchEst(id){
+  curEst=DB.establishments.find(e=>e.id===id);
+  document.getElementById('estLabel').textContent=curEst.name;
+  document.getElementById('bigTitle').textContent=`CONTROL DE ASISTENCIA — ${curEst.name.toUpperCase()}`;
+  if(!DB.data[id])DB.data[id]={courses:{A:{name:'Curso A'}},students:{A:[]},att:{},notes:{}};
+  curC='A';buildCourseSelect();noteDay=1;renderAll();renderEstList();
+  closeEstOv();showToast(`🏫 Cambiado a: ${curEst.name}`);
+}
+function addEst(){
+  const name=document.getElementById('newEstName').value.trim();
+  const addr=document.getElementById('newEstAddr').value.trim();
+  if(!name){showToast('Ingresa el nombre','err');return;}
+  const id='est'+Date.now();
+  DB.establishments.push({id,name,addr});
+  DB.data[id]={courses:{A:{name:'Curso A'}},students:{A:[]},att:{},notes:{}};
+  saveDB();document.getElementById('newEstName').value='';document.getElementById('newEstAddr').value='';
+  renderEstList();populateLoginEst();showToast(`✓ "${name}" creado`);
+}
+
+// ══════════════════════════════════════════
+// TABS & BADGE
+// ══════════════════════════════════════════
+function renderTabs(){
+  const bar=document.getElementById('tabsBar');bar.innerHTML='';
+  const tf=document.createElement('div');
+  tf.className='tab tab-fest';tf.textContent='Festivos';
+  tf.onclick=()=>showToast('Los fines de semana ya están marcados en gris','inf');
+  bar.appendChild(tf);
+  MONTHS.forEach(mo=>{
+    const t=document.createElement('div');
+    t.className='tab '+(mo.i===curM?'tab-on':'tab-off');
+    t.textContent=`${mo.n} ${Y}`;
+    t.onclick=()=>{curM=mo.i;renderTabs();noteDay=1;updateBadge();renderAll();};
+    bar.appendChild(t);
+  });
+}
+function updateBadge(){
+  document.getElementById('monthBadge').textContent=`${mName(curM)} De ${Y}`;
+}
+
+// ══════════════════════════════════════════
+// RENDER ALL (table + counter + notes)
+// ══════════════════════════════════════════
+function renderAll(){
+  const habiles=updateDaysCounter();
+  renderTable(habiles);
+  renderNotes();
+}
+
+// ══════════════════════════════════════════
+// TABLE
+// ══════════════════════════════════════════
+function buildCourseSelect(){
+  const sel=document.getElementById('courseSelect');
+  const cs=courses();
+  sel.innerHTML=Object.keys(cs).map(k=>`<option value="${k}">${cs[k].name}</option>`).join('');
+  sel.value=curC;
+}
+function changeCourse(){curC=document.getElementById('courseSelect').value;renderAll();}
+function addCourse(){
+  const n=prompt('Letra/nombre del nuevo curso:');if(!n)return;
+  const k=n.toUpperCase().replace(/\s/g,'').slice(0,4);
+  const cs=eD().courses;
+  if(cs[k]){showToast('Ese curso ya existe','err');return;}
+  cs[k]={name:`Curso ${k}`};if(!eD().students[k])eD().students[k]=[];
+  saveDB();buildCourseSelect();document.getElementById('courseSelect').value=k;changeCourse();
+  showToast(`✓ Curso ${k} creado`);
+}
+
+function renderTable(habiles){
+  const c=curC,y=Y,m=curM,days=dim(y,m),sts=students(c);
+  const wd=habiles!=null?habiles:updateDaysCounter();
+  const nwd=getNonWorkdaySet(y,m);
+  buildHead(days,y,m,nwd);
+  buildBody(c,y,m,days,sts,wd,nwd);
+}
+
+function buildHead(days,y,m,nwd){
+  const thead=document.getElementById('thead');thead.innerHTML='';
+  // Row 1: day numbers
+  const r1=document.createElement('tr');
+  [['#','fx1'],['Nombre','fx2'],['Código','fx3']].forEach(([l,cl])=>{
+    const th=document.createElement('th');th.textContent=l;th.className=cl;r1.appendChild(th);
+  });
+  for(let d=1;d<=days;d++){
+    const th=document.createElement('th');
+    th.className='dth'+(isWk(y,m,d)?' wk':nwd.has(d)?' nwd':'');
+    th.textContent=d;r1.appendChild(th);
+  }
+  STHDRS.forEach(h=>{const th=document.createElement('th');th.className='sth';th.textContent=h;r1.appendChild(th);});
+  thead.appendChild(r1);
+
+  // Row 2: day letters
+  const r2=document.createElement('tr');r2.className='sub';
+  [['','fx1'],['','fx2'],['','fx3']].forEach(([l,cl])=>{const th=document.createElement('th');th.textContent=l;th.className=cl;r2.appendChild(th);});
+  for(let d=1;d<=days;d++){
+    const th=document.createElement('th');
+    th.className=isWk(y,m,d)?'wk':nwd.has(d)?'nwd':'';th.textContent=DW[dow(y,m,d)];r2.appendChild(th);
+  }
+  STHDRS.forEach(()=>{r2.appendChild(document.createElement('th'));});
+  thead.appendChild(r2);
+
+  // Row 3: note indicator row
+  const r3=document.createElement('tr');r3.className='note-row';
+  [['','fx1'],['','fx2'],['','fx3']].forEach(([l,cl])=>{const th=document.createElement('th');th.textContent=l;th.className=cl;r3.appendChild(th);});
+  for(let d=1;d<=days;d++){
+    const th=document.createElement('th');
+    if(nwd.has(d)){
+      // show the type icon of the first deducting note
+      const notes=(eD().notes||{})[`${m}_${y}_${d}`]||[];
+      const dn=notes.find(n=>n.deducts);
+      if(dn){const cfg=NOTE_CFG[dn.type]||NOTE_CFG.otro;th.textContent=cfg.emoji;th.title=cfg.label;th.style.fontSize='11px';}
+    } else if(!isWk(y,m,d)){
+      // check if there are any non-deducting notes
+      const notes=(eD().notes||{})[`${m}_${y}_${d}`]||[];
+      if(notes.length)th.textContent='💬';th.title='Hay notas';th.style.fontSize='9px';
+    }
+    r3.appendChild(th);
+  }
+  STHDRS.forEach(()=>{r3.appendChild(document.createElement('th'));});
+  thead.appendChild(r3);
+}
+
+function buildBody(c,y,m,days,sts,wd,nwd){
+  const tbody=document.getElementById('tbody');tbody.innerHTML='';
+  const dt={};for(let d=1;d<=days;d++)dt[d]={a:0,f:0,i:0,j:0};
+
+  for(let ri=0;ri<MAX;ri++){
+    const st=sts[ri]||null;
+    const tr=document.createElement('tr');if(!st)tr.className='er';
+    const t1=document.createElement('td');t1.className='fx1';t1.textContent=st?String(st.num).padStart(2,'0'):'';
+    const t2=document.createElement('td');t2.className='fx2';t2.textContent=st?st.name:(ri<12?'—':'');if(!st)t2.style.fontSize='11px';
+    const t3=document.createElement('td');t3.className='fx3';t3.textContent=st?st.code:'';
+    tr.appendChild(t1);tr.appendChild(t2);tr.appendChild(t3);
+
+    let asist=0,faltas=0,tardI=0,tardJ=0;
+    for(let d=1;d<=days;d++){
+      const td=document.createElement('td');
+      if(nwd.has(d)) td.classList.add('nwd-cell');
+      const dv=document.createElement('div');
+      if(isWk(y,m,d)){dv.className='ac off';dv.textContent='–';}
+      else if(nwd.has(d)){
+        // Non-workday: show special indicator, don't count attendance
+        dv.className='ac-nwd';dv.textContent='—';dv.title='Día no hábil';
+      }
+      else if(!st){dv.className='ac ghost';}
+      else{
+        const s=getA(c,y,m,st.id,d);
+        dv.className='ac '+SCLS[s];dv.textContent=SICONS[s];dv.title=STIPS[s];
+        dv.onclick=()=>cycleA(c,y,m,st.id,d);
+        if(s===3||s===2){asist++;dt[d].a++;}
+        else if(s===0){faltas++;dt[d].f++;}
+        else if(s===1){tardI++;dt[d].i++;}
+        if(s===2){tardJ++;dt[d].j++;}
+      }
+      td.appendChild(dv);tr.appendChild(td);
+    }
+
+    if(st){
+      const pct=wd>0?Math.round((asist/wd)*100):0;
+      const clr=pClr(pct),bg=pBg(pct);
+      const sv=[
+        {v:asist,cl:'ca'},
+        {v:`<div class="pw"><span style="color:${clr};font-size:12px">${pct}%</span><div class="pb"><div class="pf" style="width:${Math.min(pct,100)}%;background:${bg}"></div></div></div>`,cl:'cp'},
+        {v:faltas,cl:'cf'},{v:tardJ,cl:'cj'},{v:tardI,cl:'ci'}
+      ];
+      sv.forEach(x=>{const td=document.createElement('td');td.className='stc '+x.cl;td.innerHTML=String(x.v);tr.appendChild(td);});
+    } else {
+      STHDRS.forEach(()=>{const td=document.createElement('td');td.className='stc';tr.appendChild(td);});
+    }
+    tbody.appendChild(tr);
+  }
+  buildSumRows(tbody,sts,days,c,y,m,dt,wd,nwd);
+}
+
+function buildSumRows(tbody,sts,days,c,y,m,dt,wd,nwd){
+  const n=sts.length;
+  const ps=sts.map(st=>{
+    let a=0,f=0,i=0,j=0;
+    for(let d=1;d<=days;d++){
+      if(isWk(y,m,d)||nwd.has(d))continue;
+      const s=getA(c,y,m,st.id,d);
+      if(s===3||s===2)a++;else if(s===0)f++;else if(s===1)i++;if(s===2)j++;
+    }
+    return{a,f,i,j};
+  });
+  const rc=[
+    {lbl:'Asistencias',   df:d=>dt[d].a,                                ci:0,dcl:'va'},
+    {lbl:'% Asistencia',  df:d=>n>0&&wd>0?Math.round((dt[d].a/n)*100)+'%':'',ci:1,dcl:'vp'},
+    {lbl:'Faltas',        df:d=>dt[d].f,                                ci:2,dcl:'vf'},
+    {lbl:'Asistencia J.', df:d=>dt[d].j,                                ci:3,dcl:'vj'},
+    {lbl:'Asistencia I.', df:d=>dt[d].i,                                ci:4,dcl:'vi'},
+  ];
+  const ct=[
+    ps.reduce((a,s)=>a+s.a,0),
+    n>0&&wd>0?Math.round(ps.reduce((a,s)=>a+s.a,0)/(n*wd)*100)+'%':'',
+    ps.reduce((a,s)=>a+s.f,0),
+    ps.reduce((a,s)=>a+s.j,0),
+    ps.reduce((a,s)=>a+s.i,0),
+  ];
+  rc.forEach((r)=>{
+    const tr=document.createElement('tr');tr.className='sr';
+    const t1=document.createElement('td');t1.className='fx1';
+    const t2=document.createElement('td');t2.className='fx2';t2.textContent=r.lbl;
+    const t3=document.createElement('td');t3.className='fx3';
+    tr.appendChild(t1);tr.appendChild(t2);tr.appendChild(t3);
+    for(let d=1;d<=days;d++){
+      const td=document.createElement('td');
+      if(nwd.has(d))td.style.background='rgba(150,80,220,.12)';
+      if(!isWk(y,m,d)&&!nwd.has(d)&&n>0){td.textContent=r.df(d);td.className=r.dcl;}
+      tr.appendChild(td);
+    }
+    STHDRS.forEach((_,si)=>{
+      const td=document.createElement('td');td.className='stc';
+      if(si===r.ci&&n>0)td.textContent=ct[si];tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+}
+
+// ══════════════════════════════════════════
+// NOTES
+// ══════════════════════════════════════════
+function noteKey(m,y,d){return `${m}_${y}_${d}`;}
+
+function renderNotes(){
+  const d=noteDay||1;
+  const date=new Date(Y,curM,d);
+  const chip=document.getElementById('dayChip');
+  chip.textContent=`${DW[date.getDay()]} ${String(d).padStart(2,'0')}/${String(curM+1).padStart(2,'0')}/${Y}`;
+
+  const k=noteKey(curM,Y,d);
+  const notes=(eD().notes||{})[k]||[];
+  const hasDeduct=notes.some(n=>n.deducts);
+  document.getElementById('deductInfo').style.display=hasDeduct?'flex':'none';
+
+  const list=document.getElementById('notesList');
+  if(!notes.length){list.innerHTML='<div class="notes-empty">No hay notas para este día.</div>';return;}
+  list.innerHTML=notes.map(n=>{
+    const cfg=NOTE_CFG[n.type]||NOTE_CFG.otro;
+    const dt2=new Date(n.ts);
+    return `<div class="note-item tipo-${n.type}">
+      <div class="note-meta">
+        <div class="note-date">${String(dt2.getHours()).padStart(2,'0')}:${String(dt2.getMinutes()).padStart(2,'0')} hs</div>
+        <div class="ntb" style="background:${cfg.color}">${cfg.emoji} ${cfg.label}</div>
+        ${n.deducts?'<div class="note-affects">📅 Descuenta día</div>':''}
+      </div>
+      <div class="note-text">${n.text}</div>
+      <button class="note-del" onclick="deleteNote('${k}','${n.id}')">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function updateAffectsAuto(){
+  const type=document.getElementById('noteType').value;
+  const chk=document.getElementById('affectsCheck');
+  chk.checked=DEDUCT_TYPES.has(type);
+  updateAffectsHint();
+}
+function updateAffectsHint(){
+  const chk=document.getElementById('affectsCheck');
+  document.getElementById('affectsHint').textContent=chk.checked
+    ?'⚠ Este día será marcado como no hábil en la planilla.'
+    :'Este tipo de nota no modifica los días hábiles.';
+}
+
+function insertTag(type,text){
+  document.getElementById('noteType').value=type;
+  const ta=document.getElementById('noteText');
+  ta.value=text;ta.focus();
+  updateAffectsAuto();
+}
+
+function saveNote(){
+  const text=document.getElementById('noteText').value.trim();
+  if(!text){showToast('Escribe una nota primero','err');return;}
+  const type=document.getElementById('noteType').value;
+  const deducts=document.getElementById('affectsCheck').checked;
+  const d=noteDay||1;
+  const k=noteKey(curM,Y,d);
+  const notes=eD().notes;
+  if(!notes[k])notes[k]=[];
+  notes[k].push({id:'n'+Date.now(),type,text,deducts,ts:Date.now()});
+  saveDB();
+  document.getElementById('noteText').value='';
+  renderAll(); // re-render everything including counter + table
+  showToast(deducts?`📅 Nota guardada — Día ${d} marcado como no hábil`:'📝 Nota guardada');
+}
+
+function deleteNote(k,id){
+  const notes=eD().notes;
+  if(notes[k])notes[k]=notes[k].filter(n=>n.id!==id);
+  saveDB();renderAll();
+  showToast('Nota eliminada');
+}
+
+function noteNavDay(dir){
+  const days=dim(Y,curM);
+  let d=(noteDay||1)+dir;
+  if(d<1)d=days;if(d>days)d=1;
+  noteDay=d;renderNotes();
+}
+
+// ══════════════════════════════════════════
+// STUDENTS
+// ══════════════════════════════════════════
+function openAddStudent(){
+  const cs=courses();
+  document.getElementById('iCourse').innerHTML=Object.keys(cs).map(k=>`<option value="${k}">${cs[k].name}</option>`).join('');
+  document.getElementById('iCourse').value=curC;
+  const n=students(curC).length+1;
+  document.getElementById('iNum').value=n;
+  document.getElementById('iCode').value=`Cod.${String(n).padStart(3,'0')}`;
+  document.getElementById('iName').value='';
+  openOv('addOv');setTimeout(()=>document.getElementById('iName').focus(),200);
+}
+function saveStudent(){
+  const code=document.getElementById('iCode').value.trim();
+  const name=document.getElementById('iName').value.trim();
+  const course=document.getElementById('iCourse').value;
+  const num=parseInt(document.getElementById('iNum').value)||1;
+  if(!name){showToast('Ingresa el nombre','err');return;}
+  const sts=eD().students;
+  if(!sts[course])sts[course]=[];
+  if(sts[course].length>=MAX){showToast(`Máximo ${MAX} alumnos por curso`,'err');return;}
+  sts[course].push({id:'s'+Date.now(),code,name,num});
+  saveDB();closeOv('addOv');curC=course;
+  document.getElementById('courseSelect').value=course;
+  renderAll();showToast(`✓ "${name}" agregado`);
+}
+
+// ══════════════════════════════════════════
+// USERS
+// ══════════════════════════════════════════
+function openUsersOv(){renderUsersList();openOv('usersOv');}
+function renderUsersList(){
+  document.getElementById('usersList').innerHTML=DB.users.map(u=>`
+    <div class="user-item">
+      <span style="font-size:18px">${u.role==='admin'?'🔑':'👤'}</span>
+      <div class="ui-name">${u.name} <small style="color:#9aaccf;font-size:10px">(${u.username})</small></div>
+      <span class="ui-role ${u.role==='admin'?'role-admin':'role-prof'}">${u.role==='admin'?'Admin':'Profesor'}</span>
+      ${u.id!=='u1'?`<button class="ui-del" onclick="deleteUser('${u.id}')">✕</button>`:'<div style="width:20px"></div>'}
+    </div>`).join('');
+}
+function saveUser(){
+  const username=document.getElementById('uUser').value.trim();
+  const pass=document.getElementById('uPass').value;
+  const name=document.getElementById('uName').value.trim();
+  const role=document.getElementById('uRole').value;
+  if(!username||!pass||!name){showToast('Completa todos los campos','err');return;}
+  if(DB.users.find(u=>u.username===username)){showToast('Ese usuario ya existe','err');return;}
+  DB.users.push({id:'u'+Date.now(),username,password:pass,name,role});
+  saveDB();renderUsersList();
+  document.getElementById('uUser').value='';
+  document.getElementById('uPass').value='';
+  document.getElementById('uName').value='';
+  showToast(`✓ Usuario "${username}" creado`);
+}
+function deleteUser(id){
+  if(id==='u1'){showToast('No se puede eliminar al admin principal','err');return;}
+  DB.users=DB.users.filter(u=>u.id!==id);saveDB();renderUsersList();showToast('Usuario eliminado');
+}
+
+// ══════════════════════════════════════════
+// BACKUP / RESTORE
+// ══════════════════════════════════════════
+function backupLocal(){
+  const blob=new Blob([JSON.stringify({v:4,date:new Date().toISOString(),DB},null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`asistCtrl_${Y}_${new Date().toISOString().slice(0,10)}.json`;a.click();
+  showToast('💾 Backup descargado');closeOv('backupOv');
+}
+function doRestore(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    try{
+      const p=JSON.parse(ev.target.result);if(!p.DB)throw new Error();
+      DB=p.DB;saveDB();
+      if(curEst){populateLoginEst();buildCourseSelect();renderTabs();noteDay=1;renderAll();}
+      closeOv('backupOv');showToast('✓ Datos restaurados');
+    }catch(err){showToast('Archivo inválido','err');}
+  };r.readAsText(f);e.target.value='';
+}
+
+// ══════════════════════════════════════════
+// CSV
+// ══════════════════════════════════════════
+function exportCSV(){
+  const c=curC,y=Y,m=curM,days=dim(y,m);
+  const sts=students(c);const nwd=getNonWorkdaySet(y,m);
+  const wd=updateDaysCounter();
+  let csv=`Código,Nombre,Nro`;
+  for(let d=1;d<=days;d++)if(!isWk(y,m,d)&&!nwd.has(d))csv+=`,${d}`;
+  csv+=',Asistencias,% Asist.,Faltas,Asist.J,Asist.I\n';
+  sts.forEach(st=>{
+    let row=`${st.code},"${st.name}",${st.num}`;
+    let a=0,f=0,i=0,j=0;
+    for(let d=1;d<=days;d++){
+      if(isWk(y,m,d)||nwd.has(d))continue;
+      const s=getA(c,y,m,st.id,d);row+=`,${s}`;
+      if(s===3||s===2)a++;else if(s===0)f++;else if(s===1)i++;if(s===2)j++;
+    }
+    csv+=row+`,${a},${wd>0?Math.round((a/wd)*100):0}%,${f},${j},${i}\n`;
+  });
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const a2=document.createElement('a');a2.href=URL.createObjectURL(blob);
+  a2.download=`Asistencia_${mName(m)}_${y}_${c}.csv`;a2.click();showToast('↓ CSV exportado');
+}
+
+// ══════════════════════════════════════════
+// OVERLAYS
+// ══════════════════════════════════════════
+function openOv(id){document.getElementById(id).classList.add('open');}
+function closeOv(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.ov').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
+document.getElementById('estOvEl').addEventListener('click',e=>{if(e.target===document.getElementById('estOvEl'))closeEstOv();});
+
+// ══════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════
+let _tt;
+function showToast(msg,type=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast show'+(type?' '+type:'');
+  clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+populateLoginEst();
+updateAffectsAuto();
+</script>
+</body>
+</html>
