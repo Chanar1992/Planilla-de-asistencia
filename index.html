@@ -335,9 +335,27 @@ tr.er td.fx2{color:#9aaccf!important;font-style:italic;font-size:11px}
         <label>Fecha</label>
         <span id="fechaDisp" style="color:#fff;font-weight:700;font-size:12px"></span>
       </div>
-      <div class="info-box">
-        <label>Días Hábiles</label>
-        <input type="number" id="workdaysInput" value="21" min="1" max="31" style="width:52px" onchange="renderTable()">
+      <div class="info-box" id="dayStatsBox" style="flex-direction:column;align-items:flex-start;gap:4px;padding:7px 14px;">
+        <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;">
+          <div style="display:flex;flex-direction:column;align-items:center;">
+            <span style="color:#8ab4d8;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.08em">Total días</span>
+            <span id="statTotalDays" style="color:#fff;font-size:16px;font-weight:900;font-family:'JetBrains Mono',monospace">—</span>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;">
+            <span style="color:#8ab4d8;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.08em">Días hábiles</span>
+            <span id="statWorkDays" style="color:#6af0a0;font-size:16px;font-weight:900;font-family:'JetBrains Mono',monospace">—</span>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;">
+            <span style="color:#f0a020;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.08em">Sin clases</span>
+            <span id="statNoDays" style="color:#f0a020;font-size:16px;font-weight:900;font-family:'JetBrains Mono',monospace">0</span>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;border-left:1px solid rgba(255,255,255,.2);padding-left:14px;">
+            <span style="color:#8ab4d8;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.08em">Hábiles netos</span>
+            <span id="statNetDays" style="color:#fff;font-size:16px;font-weight:900;font-family:'JetBrains Mono',monospace">—</span>
+          </div>
+        </div>
+        <div style="font-size:9px;color:#6080a0;margin-top:1px">Hábiles netos = hábiles − sin clases por notas</div>
+        <input type="hidden" id="workdaysInput" value="21">
       </div>
       <div class="big-title" id="bigTitle">CONTROL DE ASISTENCIA DE ALUMNOS</div>
       <div class="month-badge" id="monthBadge">—</div>
@@ -370,6 +388,7 @@ tr.er td.fx2{color:#9aaccf!important;font-style:italic;font-size:11px}
             <div class="nd-chip" id="noteDayChip">—</div>
             <button class="nd-btn" onclick="noteNav(1)">›</button>
           </div>
+          <div id="noClassBadge" style="display:none;background:rgba(240,160,32,.2);border:1px solid rgba(240,160,32,.5);color:#ffd080;font-size:10px;font-weight:700;padding:3px 10px;border-radius:12px;white-space:nowrap"></div>
         </div>
         <div class="ntags">
           <span class="ntag nt-s" onclick="insertTag('⛔ Suspensión de clases','suspension')">⛔ Suspensión</span>
@@ -771,14 +790,23 @@ function doLogin(){
   const estId=document.getElementById('loginEstSel').value;
   const uname=document.getElementById('loginUser').value.trim();
   const pass=document.getElementById('loginPass').value;
-  // find user who has access to this est
-  const u=DB.users.find(u=>u.username===uname&&u.password===pass&&(u.role==='superadmin'||u.estIds.includes(estId)));
-  if(!u){
-    document.getElementById('loginErr').textContent='Usuario, contraseña o establecimiento incorrectos.';
+  // First check credentials independently
+  const uByCredentials=DB.users.find(u=>u.username===uname&&u.password===pass);
+  if(!uByCredentials){
+    document.getElementById('loginErr').textContent='Usuario o contraseña incorrectos.';
     document.getElementById('loginUser').classList.add('err');
     document.getElementById('loginPass').classList.add('err');
     return;
   }
+  // Then check establishment access
+  const hasEstAccess=uByCredentials.role==='superadmin'||uByCredentials.estIds.includes(estId);
+  if(!hasEstAccess){
+    document.getElementById('loginErr').textContent='Tu usuario no tiene acceso a ese establecimiento.';
+    document.getElementById('loginUser').classList.remove('err');
+    document.getElementById('loginPass').classList.remove('err');
+    return;
+  }
+  const u=uByCredentials;
   curUser=u;
   curEst=DB.establishments.find(e=>e.id===estId);
   document.getElementById('loginScreen').style.display='none';
@@ -923,7 +951,8 @@ function addCourse(){
 // ════════════════════════════════════════════════
 function renderTable(){
   const c=curC, m=curM, days=dim(Y,m), sts=getStudents(c);
-  const wd=parseInt(document.getElementById('workdaysInput').value)||21;
+  updateDayStats();
+  const wd=getNetWorkdays()||1;
   buildHead(days,Y,m);
   buildBody(c,Y,m,days,sts,wd);
 }
@@ -1010,13 +1039,73 @@ function buildSumRows(tbody,sts,days,c,y,m,dt,wd){
 }
 
 // ════════════════════════════════════════════════
-// NOTES
+// DAY STATS (total / working / no-class / net)
 // ════════════════════════════════════════════════
+const NO_CLASS_TYPES = ['suspension','clima','feriado'];
+
+// Returns array of day numbers (1-based) that have a no-class note in current month
+function getNoClassDays(m, y){
+  m = m ?? curM; y = y ?? Y;
+  if(!curEst) return [];
+  const notes = eD().notes || {};
+  const days = dim(y, m);
+  const result = [];
+  for(let d = 1; d <= days; d++){
+    if(isWk(y, m, d)) continue;
+    const k = `${m}_${y}_${d}`;
+    const dayNotes = notes[k] || [];
+    if(dayNotes.some(n => NO_CLASS_TYPES.includes(n.type))){
+      result.push(d);
+    }
+  }
+  return result;
+}
+
+// Returns the base working days (weekdays) in the month
+function getBaseWorkdays(m, y){
+  m = m ?? curM; y = y ?? Y;
+  const days = dim(y, m);
+  let wd = 0;
+  for(let d = 1; d <= days; d++) if(!isWk(y, m, d)) wd++;
+  return wd;
+}
+
+// Net workdays = base workdays - days with no-class notes
+function getNetWorkdays(m, y){
+  m = m ?? curM; y = y ?? Y;
+  return getBaseWorkdays(m, y) - getNoClassDays(m, y).length;
+}
+
+function updateDayStats(){
+  const m = curM, y = Y;
+  const total   = dim(y, m);
+  const base    = getBaseWorkdays(m, y);
+  const noClass = getNoClassDays(m, y).length;
+  const net     = base - noClass;
+  document.getElementById('statTotalDays').textContent = total;
+  document.getElementById('statWorkDays').textContent  = base;
+  document.getElementById('statNoDays').textContent    = noClass;
+  document.getElementById('statNetDays').textContent   = net;
+  // Keep hidden input in sync so CSV export & % calculations use net workdays
+  document.getElementById('workdaysInput').value = net;
+}
+
+
 function renderNotes(){
   const k=`${curM}_${Y}_${noteDay||1}`;
   const notes=(eD().notes[k]||[]);
   const date=new Date(Y,curM,noteDay||1);
   document.getElementById('noteDayChip').textContent=`${DW[date.getDay()]} ${String(noteDay||1).padStart(2,'0')}/${String(curM+1).padStart(2,'0')}/${Y}`;
+  // Update no-class badge
+  const noClassDays=getNoClassDays(curM,Y);
+  const badge=document.getElementById('noClassBadge');
+  if(noClassDays.length){
+    badge.style.display='';
+    badge.textContent=`⛔ ${noClassDays.length} día${noClassDays.length!==1?'s':''} sin clases este mes`;
+    badge.title='Días: '+noClassDays.join(', ');
+  } else {
+    badge.style.display='none';
+  }
   const list=document.getElementById('notesList');
   if(!notes.length){ list.innerHTML='<div class="notes-empty">No hay notas para este día. Podés agregar una observación →</div>'; return; }
   list.innerHTML=notes.map(n=>{
@@ -1040,9 +1129,15 @@ function saveNote(){
   const notes=eD().notes; if(!notes[k]) notes[k]=[];
   notes[k].push({id:'n'+Date.now(),type,text,ts:Date.now(),author:curUser.name});
   saveDB(); document.getElementById('noteText').value=''; renderNotes();
+  // If a no-class note was added, refresh stats and table percentages
+  if(NO_CLASS_TYPES.includes(type)){ updateDayStats(); renderTable(); }
   showToast('📝 Nota guardada');
 }
-function deleteNote(k,id){ const n=eD().notes; if(n[k]) n[k]=n[k].filter(x=>x.id!==id); saveDB(); renderNotes(); }
+function deleteNote(k,id){
+  const n=eD().notes; if(n[k]) n[k]=n[k].filter(x=>x.id!==id);
+  saveDB(); renderNotes();
+  updateDayStats(); renderTable();
+}
 function noteNav(d){ const days=dim(Y,curM); noteDay=((noteDay||1)+d-1+days)%days+1; renderNotes(); }
 
 // Insert tag text into textarea AND offer to bulk-mark all students on that day
@@ -1421,7 +1516,8 @@ function doRestore(e){
 // ════════════════════════════════════════════════
 function exportCSV(){
   const c=curC,m=curM,days=dim(Y,m),sts=getStudents(c);
-  const wd=parseInt(document.getElementById('workdaysInput').value)||21;
+  const wd=getNetWorkdays()||1;
+  const noClassDays=new Set(getNoClassDays(m,Y));
   let csv=`Código,Nombre,Nro`;
   for(let d=1;d<=days;d++) if(!isWk(Y,m,d)) csv+=`,${d}`;
   csv+=',Asistencias,% Asist.,Faltas,Asist.J,Asist.I\n';
