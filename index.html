@@ -117,25 +117,25 @@ body.dark .tab-off:hover{background:#243860;color:#b8d8f0}
 .table-outer{background:var(--modal-bg);border:2px solid #8aaac8;border-top:3px solid var(--green);border-radius:0 8px 8px 8px;overflow:auto;box-shadow:0 4px 16px rgba(0,0,0,.12);max-height:calc(100vh - 308px)}
 table{border-collapse:collapse;width:100%;min-width:1100px}
 thead th{background:#1a2744;color:#c8ddf0;font-size:11px;font-weight:700;text-align:center;padding:7px 4px;border:1px solid #2a3a5a;position:sticky;top:0;z-index:20;white-space:nowrap;text-transform:uppercase}
-thead th.fx1{min-width:60px;text-align:left;padding-left:10px;position:sticky;left:0;z-index:30}
-thead th.fx2{min-width:138px;text-align:left;padding-left:8px;position:sticky;left:60px;z-index:30}
-thead th.fx3{min-width:70px;text-align:center;position:sticky;left:198px;z-index:30}
+thead th.fx1{min-width:36px;text-align:left;padding-left:6px;position:sticky;left:0;z-index:30}
+thead th.fx2{min-width:138px;text-align:left;padding-left:8px;position:sticky;left:36px;z-index:30}
+thead th.fx3{min-width:70px;text-align:center}
 thead th.dth{min-width:32px;font-size:10px}
 thead th.wk{background:#2a1a4a;color:#9878d8}
 thead th.sth{min-width:54px;font-size:10px;background:#0a2040}
 thead tr.sub th{background:#2a3a5a;color:#7a9ac0;font-size:9px;font-weight:400;padding:3px 4px;position:sticky;top:33px;z-index:19;border-bottom:2px solid #1a2744}
-thead tr.sub th.fx1,thead tr.sub th.fx2,thead tr.sub th.fx3{z-index:29}
+thead tr.sub th.fx1,thead tr.sub th.fx2{z-index:29}
 thead tr.sub th.wk{background:#1e1230;color:#7858c0}
 tbody tr:nth-child(odd) td{background:var(--bg-row-odd)}
 tbody tr:nth-child(even) td{background:var(--bg-row-even)}
 tbody tr:hover td{background:var(--bg-row-hover)!important}
 td{border:1px solid var(--border);padding:4px 3px;text-align:center;vertical-align:middle;font-size:12px;color:var(--text-main)}
-td.fx1{position:sticky;left:0;z-index:10;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-code);font-weight:700;min-width:60px;text-align:left;padding-left:10px;border-right:2px solid #8aaac8}
-td.fx2{position:sticky;left:60px;z-index:10;font-weight:700;font-size:13px;min-width:138px;text-align:left;padding-left:8px;border-right:2px solid #8aaac8;color:var(--text-main)}
-td.fx3{position:sticky;left:198px;z-index:10;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-sub);min-width:70px;border-right:2px solid #8aaac8}
-tbody tr:nth-child(odd) td.fx1,tbody tr:nth-child(odd) td.fx2,tbody tr:nth-child(odd) td.fx3{background:var(--bg-fx-odd)}
-tbody tr:nth-child(even) td.fx1,tbody tr:nth-child(even) td.fx2,tbody tr:nth-child(even) td.fx3{background:var(--bg-fx-even)}
-tbody tr:hover td.fx1,tbody tr:hover td.fx2,tbody tr:hover td.fx3{background:var(--bg-row-hover)!important}
+td.fx1{position:sticky;left:0;z-index:10;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-code);font-weight:700;min-width:36px;text-align:left;padding-left:6px;border-right:2px solid #8aaac8}
+td.fx2{position:sticky;left:36px;z-index:10;font-weight:700;font-size:13px;min-width:138px;text-align:left;padding-left:8px;border-right:2px solid #8aaac8;color:var(--text-main)}
+td.fx3{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-sub);min-width:70px;border-right:1px solid var(--border)}
+tbody tr:nth-child(odd) td.fx1,tbody tr:nth-child(odd) td.fx2{background:var(--bg-fx-odd)}
+tbody tr:nth-child(even) td.fx1,tbody tr:nth-child(even) td.fx2{background:var(--bg-fx-even)}
+tbody tr:hover td.fx1,tbody tr:hover td.fx2{background:var(--bg-row-hover)!important}
 .ac{width:30px;height:30px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;margin:0 auto;font-size:15px;font-weight:900;transition:transform .1s,box-shadow .1s,filter .1s;user-select:none;border:2px solid transparent}
 .ac:hover{transform:scale(1.20);box-shadow:0 3px 10px rgba(0,0,0,.35);filter:brightness(1.1)}
 /* s0 = Falta → rojo sólido */
@@ -166,7 +166,7 @@ body.dark td.stc.ca{color:#40e080}body.dark td.stc.cp{color:#40b0ff}body.dark td
 .pb{width:38px;height:4px;background:#c8d8e8;border-radius:2px;overflow:hidden}
 .pf{height:100%;border-radius:2px}
 tr.sr td{background:var(--sum)!important;color:#c8d8f0!important;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;border:1px solid #0a1a40;padding:5px 3px}
-tr.sr td.fx1,tr.sr td.fx2,tr.sr td.fx3{background:#0e1e40!important;color:#8ab4e0!important;font-size:9px;text-transform:uppercase}
+tr.sr td.fx1,tr.sr td.fx2{background:#0e1e40!important;color:#8ab4e0!important;font-size:9px;text-transform:uppercase}
 tr.sr td.fx2{text-align:left;padding-left:8px}
 tr.sr td.va{color:#4af0a0!important}tr.sr td.vp{color:#60d0ff!important}
 tr.sr td.vf{color:#ff7070!important}tr.sr td.vfj{color:#ffaa50!important}tr.sr td.vj{color:#c0a0ff!important}tr.sr td.vi{color:#ffc060!important}
@@ -541,21 +541,16 @@ body.dark .mb-c:hover{background:#3a4a6a!important}
   .table-outer{max-height:calc(100vh - 190px);border-radius:0 6px 6px 6px}
   table{min-width:500px}
 
-  /* # → 30px sticky izquierda */
-  thead th.fx1{min-width:30px!important;padding-left:4px!important}
-  td.fx1{min-width:30px!important;padding-left:4px!important;font-size:9px!important}
+  /* # y Nombre — sticky en móvil con tamaño compacto */
+  thead th.fx1{min-width:30px!important;padding-left:4px!important;left:0!important}
+  td.fx1{min-width:30px!important;padding-left:4px!important;font-size:9px!important;left:0!important}
+  thead th.fx2{min-width:120px!important;padding-left:6px!important;left:30px!important}
+  td.fx2{min-width:120px!important;font-size:12px!important;padding-left:6px!important;left:30px!important}
 
-  /* Nombre → 120px, sticky left:30px */
-  thead th.fx2{min-width:120px!important;left:30px!important;padding-left:6px!important}
-  td.fx2{min-width:120px!important;left:30px!important;font-size:12px!important;padding-left:6px!important}
-
-  /* Código → ya NO sticky, scrollea con los días */
-  thead th.fx3{position:static!important;left:auto!important;min-width:55px!important;z-index:1!important}
-  td.fx3{position:static!important;left:auto!important;min-width:55px!important;border-right:1px solid var(--border)!important}
-  tr.sr td.fx3{position:static!important;left:auto!important}
-  tbody tr:nth-child(odd) td.fx3{background:var(--bg-row-odd)!important}
-  tbody tr:nth-child(even) td.fx3{background:var(--bg-row-even)!important}
-  tbody tr:hover td.fx3{background:var(--bg-row-hover)!important}
+  /* Código → scrollea en móvil */
+  thead th.fx3{min-width:55px!important;position:static!important;left:auto!important}
+  td.fx3{min-width:55px!important;position:static!important;left:auto!important}
+  tr.sr td.fx3{position:static!important}
 
   /* Celdas de días */
   .ac{width:25px;height:25px;font-size:12px;border-radius:5px}
@@ -2008,7 +2003,10 @@ function buildSumRows(tbody,sts,days,c,y,m,dt,wd){
       STHDRS.forEach((_,si)=>{ const td=document.createElement('td'); td.className='stc'; if(si===r.ci&&n>0) td.textContent=ct[si]; tr.appendChild(td); });
       tbody.appendChild(tr);
     });
+  fixFx3Left();
 }
+
+function fixFx3Left(){} // fx3 is left:0, no calculation needed
 
 // ════════════════════════════════════════════════
 // DAY STATS
