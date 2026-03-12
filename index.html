@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>AsistCtrl — Control de Asistencia</title>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
@@ -92,6 +92,16 @@ body{font-family:'Nunito',sans-serif;background:var(--bg-page);color:var(--text-
 .info-box select option{background:#1a2744}
 .big-title{flex:1;text-align:center;background:#1e3a5f;color:#e8f4ff;font-size:16px;font-weight:900;letter-spacing:.04em;padding:9px 16px;border-radius:8px;text-transform:uppercase;box-shadow:0 2px 6px rgba(0,0,0,.25)}
 .month-badge{background:#1a6b3c;color:#fff;font-size:14px;font-weight:800;padding:8px 16px;border-radius:8px;min-width:158px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+/* ── Stats box classes (replaces inline styles) ── */
+.stat-box{flex-direction:column;align-items:flex-start;gap:4px;padding:7px 14px}
+.stat-row{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.stat-item{display:flex;flex-direction:column;align-items:center}
+.stat-net{border-left:1px solid rgba(255,255,255,.2);padding-left:14px}
+.stat-lbl{color:#8ab4d8;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}
+.stat-val{color:#fff;font-size:16px;font-weight:900;font-family:'JetBrains Mono',monospace}
+.stat-green{color:#6af0a0}
+.stat-orange{color:#f0a020}
+.stat-hint{font-size:9px;color:#6080a0;margin-top:1px}
 
 /* ══════════ TABS ══════════ */
 .tabs-bar{display:flex;align-items:flex-end;gap:3px;padding:0 0 0 2px;overflow-x:auto;scrollbar-width:none}
@@ -559,26 +569,26 @@ body.dark .mb-c:hover{background:#3a4a6a!important}
         <label>Fecha</label>
         <span id="fechaDisp" style="color:#fff;font-weight:700;font-size:12px"></span>
       </div>
-      <div class="info-box" id="dayStatsBox" style="flex-direction:column;align-items:flex-start;gap:4px;padding:7px 14px;">
-        <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;">
-          <div style="display:flex;flex-direction:column;align-items:center;">
-            <span style="color:#8ab4d8;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.08em">Total días</span>
-            <span id="statTotalDays" style="color:#fff;font-size:16px;font-weight:900;font-family:'JetBrains Mono',monospace">—</span>
+      <div class="info-box stat-box" id="dayStatsBox">
+        <div class="stat-row">
+          <div class="stat-item">
+            <span class="stat-lbl">Total días</span>
+            <span class="stat-val" id="statTotalDays">—</span>
           </div>
-          <div style="display:flex;flex-direction:column;align-items:center;">
-            <span style="color:#8ab4d8;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.08em">Días hábiles</span>
-            <span id="statWorkDays" style="color:#6af0a0;font-size:16px;font-weight:900;font-family:'JetBrains Mono',monospace">—</span>
+          <div class="stat-item">
+            <span class="stat-lbl">Días hábiles</span>
+            <span class="stat-val stat-green" id="statWorkDays">—</span>
           </div>
-          <div style="display:flex;flex-direction:column;align-items:center;">
-            <span style="color:#f0a020;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.08em">Sin clases</span>
-            <span id="statNoDays" style="color:#f0a020;font-size:16px;font-weight:900;font-family:'JetBrains Mono',monospace">0</span>
+          <div class="stat-item">
+            <span class="stat-lbl stat-orange">Sin clases</span>
+            <span class="stat-val stat-orange" id="statNoDays">0</span>
           </div>
-          <div style="display:flex;flex-direction:column;align-items:center;border-left:1px solid rgba(255,255,255,.2);padding-left:14px;">
-            <span style="color:#8ab4d8;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.08em">Hábiles netos</span>
-            <span id="statNetDays" style="color:#fff;font-size:16px;font-weight:900;font-family:'JetBrains Mono',monospace">—</span>
+          <div class="stat-item stat-net">
+            <span class="stat-lbl">Hábiles netos</span>
+            <span class="stat-val" id="statNetDays">—</span>
           </div>
         </div>
-        <div style="font-size:9px;color:#6080a0;margin-top:1px">Hábiles netos = hábiles − sin clases por notas</div>
+        <div class="stat-hint">Hábiles netos = hábiles − sin clases por notas</div>
         <input type="hidden" id="workdaysInput" value="21">
       </div>
       <div class="big-title" id="bigTitle">CONTROL DE ASISTENCIA DE ALUMNOS</div>
@@ -2798,170 +2808,106 @@ function buildPlanillaHTML(){
 
 @media (max-width:700px){
 
-  /* ── Header: 2 filas ── */
-  .aph{
-    height:auto; flex-wrap:wrap;
-    padding:7px 10px 5px; gap:6px; overflow:visible;
-  }
-  .aph-logo{ font-size:17px }
-  .aph-name{ font-size:10px; letter-spacing:.06em }
-  .est-badge{ font-size:11px; padding:3px 8px }
-  .user-badge{ font-size:10px; padding:3px 7px }
-  #darkToggleBtn{ order:10; width:28px; height:28px; font-size:13px }
-  .hbtns{
-    order:20; width:100%; margin-left:0;
-    overflow-x:auto; scrollbar-width:none;
-    padding-bottom:2px; gap:4px; flex-shrink:0;
-  }
-  .hbtns::-webkit-scrollbar{ display:none }
-  .hbtn{ font-size:11px; padding:4px 8px; white-space:nowrap }
+  /* ── Header ── */
+  .aph{height:auto;flex-wrap:wrap;padding:7px 10px 5px;gap:6px;overflow:visible}
+  .aph-logo{font-size:17px}
+  .aph-name{font-size:10px;letter-spacing:.06em}
+  .est-badge{font-size:11px;padding:3px 8px}
+  .user-badge{font-size:10px;padding:3px 7px}
+  #darkToggleBtn{order:10;width:28px;height:28px;font-size:13px}
+  .hbtns{order:20;width:100%;margin-left:0;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;gap:4px;flex-shrink:0}
+  .hbtns::-webkit-scrollbar{display:none}
+  .hbtn{font-size:11px;padding:4px 8px;white-space:nowrap}
 
-  /* ── Sheet ── */
-  .sheet{ padding:7px 8px 0 }
+  /* ── Sheet / info-bar ── */
+  .sheet{padding:7px 8px 0}
+  .info-bar{display:flex;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;gap:5px;margin-bottom:6px;padding-bottom:2px;align-items:stretch}
+  .info-bar::-webkit-scrollbar{display:none}
+  .info-box{padding:5px 8px;gap:6px;font-size:11px;flex-shrink:0}
+  .info-box label{font-size:9px}
 
-  /* ── Info-bar: una sola fila horizontal con scroll ── */
-  .info-bar{
-    display:flex; flex-wrap:nowrap;
-    overflow-x:auto; scrollbar-width:none;
-    gap:5px; margin-bottom:6px;
-    padding-bottom:2px;
-    align-items:stretch;
-  }
-  .info-bar::-webkit-scrollbar{ display:none }
-  .info-box{ padding:5px 8px; gap:6px; font-size:11px; flex-shrink:0 }
-  .info-box label{ font-size:9px }
+  /* ── Stats box — ahora con clases, fácil de pisar ── */
+  .stat-box{flex-direction:row!important;align-items:center!important;gap:0!important;padding:5px 10px!important;flex-shrink:0}
+  .stat-row{gap:8px!important;flex-wrap:nowrap!important}
+  .stat-lbl{font-size:8px!important;letter-spacing:0!important}
+  .stat-val{font-size:13px!important}
+  .stat-hint{display:none!important}
+  .stat-net{padding-left:8px!important}
 
-  /* Stats box: fila compacta, todo en una línea ── */
-  #dayStatsBox{
-    flex-direction:row!important;
-    align-items:center!important;
-    gap:0!important;
-    padding:5px 10px!important;
-    flex-shrink:0;
-  }
-  #dayStatsBox>div:first-child{
-    gap:10px!important; flex-wrap:nowrap!important;
-  }
-  #dayStatsBox span[style*="font-size:9px"]{
-    font-size:8px!important; letter-spacing:0!important;
-  }
-  #dayStatsBox span[style*="font-size:16px"]{
-    font-size:13px!important;
-  }
-  #dayStatsBox div[style*="border-left"]{
-    padding-left:10px!important;
-  }
-  /* Ocultar subtítulo "Hábiles netos = ..." */
-  #dayStatsBox div[style*="font-size:9px;color:#6080a0"]{ display:none }
-
-  /* Ocultar big-title y month-badge (innecesarios en móvil) */
-  .big-title{ display:none }
-  .month-badge{ display:none }
+  /* ── Ocultar elementos innecesarios en móvil ── */
+  .big-title{display:none!important}
+  .month-badge{display:none!important}
 
   /* ── Tabs ── */
-  .tabs-bar{ gap:2px; padding:0 0 0 1px }
-  .tab{ padding:4px 9px; font-size:11px }
+  .tabs-bar{gap:2px;padding:0 0 0 1px}
+  .tab{padding:4px 9px;font-size:11px}
 
-  /* ── Tabla: fx3 (Código) deja de ser sticky ──
-     Solo # y Nombre quedan fijos a la izquierda     ── */
-  .table-outer{
-    max-height:calc(100vh - 195px);
-    border-radius:0 6px 6px 6px;
-  }
-  table{ min-width:600px }
+  /* ── Tabla: solo # y Nombre son sticky, Código scrollea ── */
+  .table-outer{max-height:calc(100vh - 190px);border-radius:0 6px 6px 6px}
+  table{min-width:500px}
 
-  /* fx1 = # → muy angosto */
-  thead th.fx1{ min-width:30px; padding-left:4px }
-  td.fx1{
-    min-width:30px; padding-left:4px;
-    font-size:9px;
-  }
+  /* # → 30px sticky izquierda */
+  thead th.fx1{min-width:30px;padding-left:4px}
+  td.fx1{min-width:30px;padding-left:4px;font-size:9px}
 
-  /* fx2 = Nombre → ancho moderado, sticky left:30px */
-  thead th.fx2{ min-width:120px; left:30px; padding-left:6px }
-  td.fx2{
-    min-width:120px; left:30px;
-    font-size:12px; padding-left:6px;
-  }
+  /* Nombre → 120px, sticky left:30px */
+  thead th.fx2{min-width:120px;left:30px;padding-left:6px}
+  td.fx2{min-width:120px;left:30px;font-size:12px;padding-left:6px}
 
-  /* fx3 = Código → ya NO sticky, scrollea con los días */
-  thead th.fx3{
-    position:static!important;
-    min-width:58px; left:auto;
-  }
-  td.fx3{
-    position:static!important;
-    min-width:58px; left:auto;
-    border-right:1px solid var(--border);
-  }
-  /* Summary row fx3 */
-  tr.sr td.fx3{ position:static!important }
+  /* Código → ya NO sticky, scrollea con los días */
+  thead th.fx3{position:static!important;left:auto!important;min-width:55px;z-index:1!important}
+  td.fx3{position:static!important;left:auto!important;min-width:55px;border-right:1px solid var(--border)}
+  /* Arreglar fila resumen fx3 */
+  tr.sr td.fx3{position:static!important;left:auto!important}
+  tbody tr:nth-child(odd) td.fx3{background:var(--bg-row-odd)}
+  tbody tr:nth-child(even) td.fx3{background:var(--bg-row-even)}
+  tbody tr:hover td.fx3{background:var(--bg-row-hover)!important}
 
-  /* Días: celdas pequeñas */
-  .ac{ width:25px; height:25px; font-size:12px; border-radius:5px }
-  td{ padding:3px 2px; font-size:11px }
-  thead th.dth{ min-width:29px; font-size:9px }
-  thead th.sth{ min-width:44px; font-size:9px }
-  td.stc{ min-width:44px; font-size:9px }
+  /* Celdas de días */
+  .ac{width:25px;height:25px;font-size:12px;border-radius:5px}
+  td{padding:3px 2px;font-size:11px}
+  thead th.dth{min-width:29px;font-size:9px}
+  thead th.sth{min-width:44px;font-size:9px}
+  td.stc{min-width:44px;font-size:9px}
 
-  /* ── Legend: scroll horizontal ── */
-  .leg{
-    gap:9px; padding:5px 8px;
-    overflow-x:auto; scrollbar-width:none; flex-wrap:nowrap;
-  }
-  .leg::-webkit-scrollbar{ display:none }
-  .li{ white-space:nowrap; font-size:10px }
-  .leg>div[style*="margin-left:auto"]{ display:none }
+  /* ── Legend horizontal scroll ── */
+  .leg{gap:9px;padding:5px 8px;overflow-x:auto;scrollbar-width:none;flex-wrap:nowrap}
+  .leg::-webkit-scrollbar{display:none}
+  .li{white-space:nowrap;font-size:10px}
+  .leg>div[style*="margin-left:auto"]{display:none}
 
-  /* ── Notes panel ── */
-  .notes-hdr{ padding:7px 10px; flex-direction:column; gap:5px; align-items:flex-start }
-  .ntags{ flex-wrap:wrap; gap:4px }
-  .ntag{ font-size:10px; padding:3px 7px }
-  .notes-body{ flex-direction:column }
-  .notes-list{ max-height:110px }
-  .notes-inp-col{ border-left:none; border-top:1px solid var(--border); padding:7px 8px }
-  .ntarea{ height:56px }
+  /* ── Notes ── */
+  .notes-hdr{padding:7px 10px;flex-direction:column;gap:5px;align-items:flex-start}
+  .ntags{flex-wrap:wrap;gap:4px}
+  .ntag{font-size:10px;padding:3px 7px}
+  .notes-body{flex-direction:column}
+  .notes-list{max-height:110px}
+  .notes-inp-col{border-left:none;border-top:1px solid var(--border);padding:7px 8px}
+  .ntarea{height:56px}
 
-  /* ── Legajos view ── */
-  #legajosView{ padding:7px 6px 80px }
-  #legajosView>div:first-child{ padding:7px 8px; gap:5px }
+  /* ── Legajos ── */
+  #legajosView{padding:7px 6px 80px}
+  #legajosView>div:first-child{padding:7px 8px;gap:5px}
 
-  /* ── Modales: sheet desde abajo ── */
-  .ov{ padding:0; align-items:flex-end }
-  .modal{
-    border-radius:16px 16px 0 0!important;
-    max-width:100%!important;
-    width:100%!important;
-    max-height:92vh!important;
-    margin:0!important;
-    padding:16px 14px 28px!important;
-    overflow-y:auto;
-  }
-  .modal-title{ font-size:15px; margin-bottom:12px }
-  .mrow{ flex-direction:column; gap:8px }
-  .mrow .fg{ flex:1!important; min-width:unset!important; width:100% }
-  .fi{ font-size:14px; padding:9px 10px }
-  .mfoot{ flex-wrap:wrap; gap:8px }
-  .mb{ font-size:13px; padding:10px 14px }
+  /* ── Modales desde abajo ── */
+  .ov{padding:0;align-items:flex-end}
+  .modal{border-radius:16px 16px 0 0!important;max-width:100%!important;width:100%!important;max-height:92vh!important;margin:0!important;padding:16px 14px 28px!important;overflow-y:auto}
+  .modal-title{font-size:15px;margin-bottom:12px}
+  .mrow{flex-direction:column;gap:8px}
+  .mrow .fg{flex:1!important;min-width:unset!important;width:100%}
+  .fi{font-size:14px;padding:9px 10px}
+  .mfoot{flex-wrap:wrap;gap:8px}
+  .mb{font-size:13px;padding:10px 14px}
+  #editCourseOv .modal{max-height:94vh!important}
+  #ecStudentList{max-height:210px}
+  .ec-st-code{width:52px}
+  .ec-st-nnum{width:32px}
 
-  /* Edit course: student list */
-  #editCourseOv .modal{ max-height:94vh!important }
-  #ecStudentList{ max-height:210px }
-  .ec-st-code{ width:52px }
-  .ec-st-nnum{ width:32px }
-
-  /* Baja modal */
-  #bajaStudOv .modal{ padding-bottom:32px!important }
-
-  /* ── Bottom padding para que el FAB no tape contenido ── */
-  #appRoot{ padding-bottom:72px }
+  /* ── Padding inferior para FAB ── */
+  #appRoot{padding-bottom:72px}
 
   /* ── Drawer ── */
-  .drawer{
-    width:100%!important; border-radius:16px 16px 0 0;
-    top:auto!important; bottom:0!important;
-    height:85vh!important; max-height:85vh!important;
-  }
+  .drawer{width:100%!important;border-radius:16px 16px 0 0;top:auto!important;bottom:0!important;height:85vh!important;max-height:85vh!important}
 }
 
 /* ── Tablet breakpoint (701–1024px) ── */
