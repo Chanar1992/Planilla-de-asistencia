@@ -642,6 +642,29 @@ body.dark .mb-c:hover{background:#3a4a6a!important}
     </div>
   </div><!-- /asistSheet -->
 
+  <!-- MOBILE FAB — only visible on small screens -->
+  <div id="mobileFab" style="display:none;position:fixed;bottom:14px;right:14px;z-index:300;flex-direction:column-reverse;align-items:flex-end;gap:8px">
+    <button id="fabMain" onclick="toggleFabMenu()" style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#1a9e40,#1a6b3c);color:#fff;font-size:22px;border:none;box-shadow:0 4px 18px rgba(0,0,0,.4);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .2s">＋</button>
+    <div id="fabMenu" style="display:none;flex-direction:column-reverse;align-items:flex-end;gap:8px">
+      <div class="fab-item" onclick="openAddStudent();closeFabMenu()">
+        <span class="fab-label">+ Alumno</span>
+        <button class="fab-btn" style="background:#2563c4">👤</button>
+      </div>
+      <div class="fab-item" onclick="openAddCourse();closeFabMenu()">
+        <span class="fab-label">+ Curso</span>
+        <button class="fab-btn" style="background:#7030d0">📚</button>
+      </div>
+      <div class="fab-item" onclick="openEditCourse();closeFabMenu()">
+        <span class="fab-label">Editar curso</span>
+        <button class="fab-btn" style="background:#e07800">✏️</button>
+      </div>
+      <div class="fab-item" onclick="openBackup();closeFabMenu()">
+        <span class="fab-label">Backup</span>
+        <button class="fab-btn" style="background:#1a4a8a">☁️</button>
+      </div>
+    </div>
+  </div>
+
   <!-- SHEET — LEGAJOS (oculto por defecto) -->
   <div id="legajosView" style="display:none;padding:12px 16px 16px;background:var(--sheet-bg)">
     <!-- Barra superior con volver + selector de curso/turno -->
@@ -1309,6 +1332,7 @@ function doLogin(){
     const vc=visibleCourses();
     if(vc[curUser.courses[0]]){ curC=curUser.courses[0]; document.getElementById('courseSelect').value=curC; renderTable(); }
   }
+  initMobile();
 }
 function doLogout(){
   document.getElementById('loginScreen').style.display='flex';
@@ -2500,6 +2524,31 @@ async function startCustomUpload(){
 // ══════════════════════════════════════
 // OAuth2 redirect handler (all services)
 // ══════════════════════════════════════
+// ════════════════════════════════════════════════
+// MOBILE
+// ════════════════════════════════════════════════
+function initMobile(){
+  const isMob=window.innerWidth<=700;
+  const fab=document.getElementById('mobileFab');
+  if(fab) fab.style.display=isMob?'flex':'none';
+}
+function toggleFabMenu(){
+  const menu=document.getElementById('fabMenu');
+  const btn=document.getElementById('fabMain');
+  if(!menu) return;
+  const open=menu.style.display==='flex';
+  menu.style.display=open?'none':'flex';
+  btn.textContent=open?'＋':'✕';
+  btn.style.transform=open?'rotate(0deg)':'rotate(45deg)';
+}
+function closeFabMenu(){
+  const menu=document.getElementById('fabMenu');
+  const btn=document.getElementById('fabMain');
+  if(menu) menu.style.display='none';
+  if(btn){ btn.textContent='＋'; btn.style.transform='rotate(0deg)'; }
+}
+window.addEventListener('resize',()=>{ initMobile(); closeFabMenu(); });
+
 (function handleOAuthRedirect(){
   const hash=window.location.hash;
   if(!hash.includes('access_token')) return;
@@ -2729,6 +2778,187 @@ function buildPlanillaHTML(){
   .sign-box{ text-align:center; }
   .sign-line{ width:120px; border-top:1px solid #808080; margin:0 auto 2px; margin-top:22px; }
   .sign-label{ font-size:6pt; color:#606070; }
+
+
+/* ══════════════════════════════════════════════════════
+   RESPONSIVE — MOBILE  (≤ 700px)
+   Estrategia:
+   · Header: 2 filas — logo/est/user arriba, acciones abajo
+   · Info-bar: compacta, big-title y month-badge ocultos
+   · Tabla: sticky cols + scroll horizontal (igual desktop)
+   · Tabs: scroll horizontal
+   · Notes: colapsables
+   · Modales: full-width, sin márgenes laterales
+   · Bottom-nav fija con acciones principales
+══════════════════════════════════════════════════════ */
+/* ── FAB ── */
+.fab-item{display:flex;align-items:center;gap:8px}
+.fab-label{background:rgba(10,20,40,.85);color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:10px;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.fab-btn{width:42px;height:42px;border-radius:50%;color:#fff;font-size:18px;border:none;box-shadow:0 3px 12px rgba(0,0,0,.35);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+
+@media (max-width:700px){
+
+  /* ── Header ── */
+  .aph{
+    height:auto;
+    flex-wrap:wrap;
+    padding:8px 12px 6px;
+    gap:6px;
+    overflow:visible;
+  }
+  .aph-logo{ font-size:18px }
+  .aph-name{ font-size:10px }
+  .est-badge{ font-size:11px; padding:3px 9px }
+  .user-badge{ font-size:10px; padding:3px 8px }
+  /* Dark toggle: push to end of first row */
+  #darkToggleBtn{ order:10; width:30px; height:30px; font-size:14px }
+  /* Header buttons: full second row, scroll horizontal */
+  .hbtns{
+    order:20;
+    width:100%;
+    margin-left:0;
+    overflow-x:auto;
+    scrollbar-width:none;
+    padding-bottom:2px;
+    gap:5px;
+    flex-shrink:0;
+  }
+  .hbtns::-webkit-scrollbar{ display:none }
+  .hbtn{ font-size:11px; padding:5px 9px; white-space:nowrap }
+
+  /* ── Sheet / info-bar ── */
+  .sheet{ padding:8px 10px 0 }
+  .info-bar{ gap:6px; margin-bottom:7px }
+  .info-box{ padding:5px 10px; gap:7px; font-size:11px }
+  .big-title{ display:none }
+  .month-badge{ display:none }
+  #dayStatsBox .pw-sub{ font-size:8px }
+
+  /* Stats box: horizontal compacto */
+  #dayStatsBox{
+    padding:5px 10px!important;
+    flex-direction:row!important;
+    align-items:center!important;
+    gap:0!important;
+    width:100%;
+    box-sizing:border-box;
+  }
+  #dayStatsBox>div:first-child{
+    gap:10px!important;
+    flex-wrap:nowrap!important;
+  }
+  #dayStatsBox span[style*="font-size:9px"]{
+    font-size:8px!important;
+    letter-spacing:0!important;
+  }
+  #dayStatsBox span[style*="font-size:16px"]{
+    font-size:14px!important;
+  }
+  /* Hide the subtitle text in stats */
+  #dayStatsBox div[style*="font-size:9px;color:#6080a0"]{ display:none }
+
+  /* ── Tabs ── */
+  .tabs-bar{ gap:2px; padding:0 0 0 1px }
+  .tab{ padding:5px 10px; font-size:11px }
+
+  /* ── Table ── */
+  .table-outer{
+    max-height:calc(100vh - 260px);
+    border-radius:0 6px 6px 6px;
+  }
+  /* Reducir celdas de días */
+  .ac{ width:26px; height:26px; font-size:13px; border-radius:6px }
+  td{ padding:3px 2px; font-size:11px }
+  td.fx1{ min-width:44px; font-size:9px; padding-left:6px }
+  td.fx2{ min-width:110px; left:44px; font-size:12px; padding-left:6px }
+  td.fx3{ min-width:58px; left:154px; font-size:9px }
+  thead th.fx1{ min-width:44px; padding-left:6px }
+  thead th.fx2{ min-width:110px; left:44px; padding-left:6px }
+  thead th.fx3{ min-width:58px; left:154px }
+  thead th.dth{ min-width:30px }
+  thead th.sth{ min-width:46px }
+  td.stc{ min-width:46px; font-size:10px }
+
+  /* ── Legend: scroll horizontal ── */
+  .leg{
+    gap:10px;
+    padding:6px 10px;
+    overflow-x:auto;
+    scrollbar-width:none;
+    flex-wrap:nowrap;
+  }
+  .leg::-webkit-scrollbar{ display:none }
+  .li{ white-space:nowrap; font-size:10px }
+  .leg>div[style*="margin-left:auto"]{ display:none }
+
+  /* ── Notes panel ── */
+  .notes-hdr{ padding:8px 10px; flex-direction:column; gap:6px; align-items:flex-start }
+  .ntags{ flex-wrap:wrap; gap:4px }
+  .ntag{ font-size:10px; padding:3px 8px }
+  .notes-body{ flex-direction:column }
+  .notes-list{ max-height:120px }
+  .notes-inp-col{ border-left:none; border-top:1px solid var(--border); padding:8px 10px }
+  .ntarea{ height:60px }
+
+  /* ── Legajos view ── */
+  #legajosView{ padding:8px 8px 80px }
+  #legajosView>div:first-child{ padding:8px 10px; gap:6px }
+  #legThead th{ font-size:10px; padding:5px 4px }
+  #legTbody td{ font-size:11px; padding:5px 4px }
+
+  /* ── Modales: full screen en mobile ── */
+  .ov{ padding:0; align-items:flex-end }
+  .modal{
+    border-radius:16px 16px 0 0!important;
+    max-width:100%!important;
+    width:100%!important;
+    max-height:90vh!important;
+    margin:0!important;
+    padding:16px 14px 24px!important;
+    overflow-y:auto;
+  }
+  .modal-title{ font-size:15px; margin-bottom:12px }
+  .mrow{ flex-direction:column; gap:8px }
+  .mrow .fg{ flex:1!important; min-width:unset!important; width:100% }
+  .fi{ font-size:14px; padding:9px 10px }
+  .mfoot{ flex-wrap:wrap; gap:8px }
+  .mb{ font-size:13px; padding:10px 14px }
+
+  /* Edit course modal student list */
+  #editCourseOv .modal{ max-height:96vh!important }
+  #ecStudentList{ max-height:220px }
+  .ec-st-code{ width:55px }
+  .ec-st-nnum{ width:34px }
+
+  /* Users modal */
+  #usersOv .modal{ max-height:96vh!important }
+  .um-tabs{ overflow-x:auto; scrollbar-width:none }
+  .um-tab{ font-size:11px; padding:6px 10px; white-space:nowrap }
+
+  /* Backup modal */
+  .bc-grid{ grid-template-columns:1fr 1fr!important }
+
+  /* ── Bottom padding so content clears FAB ── */
+  #appRoot{ padding-bottom:64px }
+
+  /* ── Drawer (legajo lateral) ── */
+  .drawer{
+    width:100%!important;
+    border-radius:16px 16px 0 0;
+    top:auto!important;
+    bottom:0!important;
+    height:85vh!important;
+    max-height:85vh!important;
+  }
+}
+
+/* ── Tablet breakpoint (701–1024px) ── */
+@media (min-width:701px) and (max-width:1024px){
+  .aph{ gap:8px }
+  .hbtn{ font-size:11px; padding:5px 9px }
+  .big-title{ font-size:13px }
+  .table-outer{ max-height:calc(100vh - 296px) }
+}
 
   @media print{
     body{ -webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact; }
