@@ -808,7 +808,7 @@ let drwStudent = null, drwCourse = null;
 // ════════════════════════════════════════════════
 function loadDB() {
   try {
-    const r=localStorage.getItem('asistDB_v4');
+    const r=localStorage.getItem('asistDB_v5');
     if(r){
       const db=JSON.parse(r);
       if(db.data) Object.keys(db.data).forEach(k=>{ if(!db.data[k].legajos) db.data[k].legajos={}; });
@@ -817,7 +817,7 @@ function loadDB() {
   } catch(e){}
   return buildFreshDB();
 }
-function saveDB() { localStorage.setItem('asistDB_v4', JSON.stringify(DB)); }
+function saveDB() { localStorage.setItem('asistDB_v5', JSON.stringify(DB)); }
 
 function buildFreshDB() {
   const db = {
