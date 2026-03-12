@@ -1069,7 +1069,7 @@ function buildHeaderBtns(){
   if(showAddStudent) html+=`<button class="hbtn hb-ghost" onclick="openAddStudent()">＋ Alumno</button>`;
   if(canManageUsers()) html+=`<button class="hbtn hb-purple" onclick="openUsersOv()">👥 Usuarios</button>`;
   html+=`<button class="hbtn hb-orange" onclick="openOv('backupOv')">☁ Backup</button>`;
-  html+=`<button class="hbtn hb-blue" onclick="exportCSV()">↓ CSV</button>`;
+  html+=`<button class="hbtn hb-blue" onclick="exportPDF()">🖨 Imprimir</button>`;
   html+=`<button class="hbtn hb-red" onclick="doLogout()">⏻ Salir</button>`;
   c.innerHTML=html;
   const acb=document.getElementById('addCourseBtn');
@@ -1752,32 +1752,314 @@ function doRestore(e){
 }
 
 // ════════════════════════════════════════════════
-// CSV
+// IMPRIMIR / PDF
 // ════════════════════════════════════════════════
-function exportCSV(){
-  const c=curC,m=curM,days=dim(Y,m),sts=getStudents(c);
+function exportPDF(){
+  const c=curC, m=curM, days=dim(Y,m), sts=getStudents(c);
   const wd=getNetWorkdays()||1;
-  let csv=`Código,Nombre,Nro`;
-  for(let d=1;d<=days;d++) if(!isWk(Y,m,d)) csv+=`,${d}`;
-  csv+=',Asistencias,% Asist.,Faltas,Asist.J,Asist.I\n';
-  sts.forEach(st=>{
-    let row=`${st.code},"${st.name}",${st.num}`;
-    let a=0,f=0,i=0,j=0,fj=0;
-    for(let d=1;d<=days;d++){
-      if(isWk(Y,m,d)) continue;
+  const monthName=mName(m);
+  const courses=getCourses();
+  const courseName=(courses[c]||{}).name||c;
+  const estName=curEst?curEst.name:'';
+  const estAddr=curEst?curEst.addr:'';
+
+  // Collect workdays
+  const workDays=[];
+  for(let d=1;d<=days;d++) if(!isWk(Y,m,d)) workDays.push(d);
+
+  // Per-student stats
+  const rows=sts.map(st=>{
+    const cells=workDays.map(d=>{
       const s=getAtt(c,Y,m,st.id,d);
-      if(s===null){ row+=`,-`; continue; }
-      if(s===4){ row+=`,⊘`; continue; }
-      row+=`,${s}`;
-      if(s===3||s===2) a++; else if(s===0) f++; else if(s===1) i++;
+      return s;
+    });
+    let a=0,f=0,fj=0,i=0,j=0;
+    cells.forEach(s=>{
+      if(s===3||s===2) a++;
+      else if(s===0) f++;
+      else if(s===5){ f++; fj++; }
+      else if(s===1) i++;
       if(s===2) j++;
-    }
-    csv+=row+`,${a},${Math.round((a/wd)*100)}%,${f},${j},${i}\n`;
+    });
+    const pct=Math.round((a/wd)*100);
+    return {st,cells,a,f,fj,i,j,pct};
   });
-  const b=new Blob([csv],{type:'text/csv;charset=utf-8;'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(b);
-  a.download=`Asistencia_${mName(m)}_${Y}_${curC}_${curEst.name.replace(/\s/g,'_')}.csv`; a.click();
-  showToast('↓ CSV exportado');
+
+  // Day-of-week initials
+  const DOW_ES=['D','L','M','M','J','V','S'];
+
+  // Color/icon per state
+  function cellHTML(s, d){
+    if(s===null) return `<td class="c-empty"></td>`;
+    if(s===4)    return `<td class="c-nc">S/C</td>`;
+    if(s===3)    return `<td class="c-ok">P</td>`;
+    if(s===0)    return `<td class="c-fa">A</td>`;
+    if(s===5)    return `<td class="c-fj">F.J.</td>`;
+    if(s===1)    return `<td class="c-ti">T.I.</td>`;
+    if(s===2)    return `<td class="c-tj">T.J.</td>`;
+    return `<td>?</td>`;
+  }
+
+  function pctColor(p){ return p>=80?'#1a7a40':p>=60?'#c07000':'#c02020'; }
+
+  // Build rows HTML
+  const tbodyHTML = rows.map((r,ri)=>`
+    <tr class="${ri%2===0?'row-odd':'row-even'}">
+      <td class="c-num">${String(r.st.num).padStart(2,'0')}</td>
+      <td class="c-name">${r.st.name}<div class="c-code">${r.st.code}</div></td>
+      ${r.cells.map((s,ci)=>cellHTML(s, workDays[ci])).join('')}
+      <td class="c-stat c-stat-a">${r.a}</td>
+      <td class="c-stat c-stat-pct" style="color:${pctColor(r.pct)}">${r.pct}%</td>
+      <td class="c-stat c-stat-f">${r.f}</td>
+      <td class="c-stat c-stat-fj">${r.fj||0}</td>
+      <td class="c-stat c-stat-ti">${r.i}</td>
+      <td class="c-stat c-stat-tj">${r.j}</td>
+    </tr>`).join('');
+
+  // Summary row
+  const totA=rows.reduce((s,r)=>s+r.a,0);
+  const totF=rows.reduce((s,r)=>s+r.f,0);
+  const totFJ=rows.reduce((s,r)=>s+(r.fj||0),0);
+  const totI=rows.reduce((s,r)=>s+r.i,0);
+  const totJ=rows.reduce((s,r)=>s+r.j,0);
+  const avgPct=rows.length>0?Math.round(rows.reduce((s,r)=>s+r.pct,0)/rows.length):0;
+
+  // Day totals (asistencias por día)
+  const dayTotals=workDays.map(d=>{
+    let cnt=0; sts.forEach(st=>{ const s=getAtt(c,Y,m,st.id,d); if(s===3||s===2) cnt++; }); return cnt;
+  });
+
+  const noClassDays=getNoClassDays(m,Y).length;
+  const netDays=wd;
+  const totalDays=days;
+  const workdaysBase=getBaseWorkdays(m,Y);
+
+  const html=`<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Planilla Asistencia — ${monthName} ${Y} — ${courseName}</title>
+<style>
+  @page { size: A4 landscape; margin: 10mm 8mm 10mm 8mm; }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{ font-family: Arial, Helvetica, sans-serif; font-size: 7.5pt; color: #111; background: #fff; }
+
+  /* ── HEADER ── */
+  .page-header{ display:flex; align-items:stretch; gap:0; border:2px solid #1a2744; border-radius:6px; overflow:hidden; margin-bottom:6px; }
+  .ph-brand{ background:#1a2744; color:#fff; padding:8px 14px; display:flex; flex-direction:column; justify-content:center; min-width:110px; }
+  .ph-brand-title{ font-size:13pt; font-weight:900; letter-spacing:.06em; color:#6af0a0; }
+  .ph-brand-sub{ font-size:6.5pt; color:#8ab4d8; margin-top:1px; letter-spacing:.08em; text-transform:uppercase; }
+  .ph-est{ flex:1; padding:8px 14px; background:#f4f8ff; border-left:3px solid #2563c4; }
+  .ph-est-name{ font-size:11pt; font-weight:800; color:#1a2744; }
+  .ph-est-addr{ font-size:7pt; color:#5a6a9a; margin-top:2px; }
+  .ph-meta{ display:grid; grid-template-columns:1fr 1fr; gap:4px 16px; padding:8px 14px; background:#fff; border-left:1px solid #d0dce8; min-width:180px; }
+  .ph-meta-item{ display:flex; flex-direction:column; }
+  .ph-meta-lbl{ font-size:6pt; font-weight:700; color:#8090b0; text-transform:uppercase; letter-spacing:.06em; }
+  .ph-meta-val{ font-size:9.5pt; font-weight:800; color:#1a2744; }
+  .ph-stats{ background:#1a2744; color:#fff; padding:8px 14px; display:grid; grid-template-columns:1fr 1fr; gap:4px 12px; min-width:160px; border-left:3px solid #2d9e4f; }
+  .ph-stat{ display:flex; flex-direction:column; align-items:center; }
+  .ph-stat-val{ font-size:12pt; font-weight:900; }
+  .ph-stat-lbl{ font-size:5.5pt; color:#8ab4d8; text-transform:uppercase; letter-spacing:.05em; }
+  .v-green{ color:#6af0a0; }
+  .v-orange{ color:#f0a020; }
+
+  /* ── TABLE ── */
+  table{ width:100%; border-collapse:collapse; table-layout:fixed; }
+  thead th{ background:#1a2744; color:#c8ddf0; font-size:6.5pt; font-weight:700; text-align:center; padding:3px 1px; border:1px solid #2a3a5a; white-space:nowrap; overflow:hidden; }
+  thead th.h-num{ width:20px; background:#0e1830; }
+  thead th.h-name{ width:100px; text-align:left; padding-left:5px; background:#0e1830; }
+  thead th.h-day{ width:14px; font-size:6pt; }
+  thead th.h-day.wk-hdr{ background:#2a1a4a; color:#9878d8; }
+  thead th.h-stat{ width:22px; font-size:6pt; background:#0a2040; }
+  thead tr.sub-hdr th{ background:#253555; font-size:5.5pt; font-weight:400; color:#8aaccc; padding:2px 1px; }
+  thead tr.sub-hdr th.h-num, thead tr.sub-hdr th.h-name{ background:#1a2744; }
+
+  td{ border:1px solid #d0dce8; text-align:center; vertical-align:middle; padding:1px; overflow:hidden; }
+  td.c-num{ font-size:7pt; font-weight:700; color:#4a5a8a; background:#f8faff; font-family:'Courier New',monospace; }
+  td.c-name{ text-align:left; padding:2px 4px; font-size:7pt; font-weight:700; color:#1a2744; background:#f8faff; border-right:2px solid #8aaac8; }
+  td.c-code{ font-size:5.5pt; color:#8090b0; font-weight:400; font-family:'Courier New',monospace; margin-top:1px; }
+
+  /* Attendance states */
+  td.c-ok  { background:#1a9e40; color:#fff; font-size:8pt; font-weight:900; border-color:#148030; }
+  td.c-fa  { background:#d63031; color:#fff; font-size:8pt; font-weight:900; border-color:#a02020; }
+  td.c-fj  { background:#b84800; color:#fff; font-size:6pt; font-weight:900; border-color:#903400; }
+  td.c-ti  { background:#e07800; color:#fff; font-size:8pt; font-weight:900; border-color:#b05800; }
+  td.c-tj  { background:#7030d0; color:#fff; font-size:8pt; font-weight:900; border-color:#5020a0; }
+  td.c-nc  { background:repeating-linear-gradient(45deg,#4a5a7a,#4a5a7a 2px,#2a3a5a 2px,#2a3a5a 5px); color:#c8d8f0; font-size:7pt; border-color:#2a3a5a; }
+  td.c-empty{ color:#bbb; font-size:6.5pt; background:#fcfcfc; }
+
+  /* Stats columns */
+  td.c-stat{ font-size:7pt; font-weight:700; font-family:'Courier New',monospace; background:#e8f0f8; border-left:2px solid #8aaac8; }
+  td.c-stat-a  { color:#1a6a40; }
+  td.c-stat-pct{ font-size:6.5pt; }
+  td.c-stat-f  { color:#c02020; }
+  td.c-stat-fj { color:#b84800; }
+  td.c-stat-ti { color:#c07000; }
+  td.c-stat-tj { color:#5030b0; }
+
+  tr.row-odd td{ background-color:#fff; }
+  tr.row-even td{ background-color:#f5f8fc; }
+  tr.row-odd td.c-name, tr.row-even td.c-name,
+  tr.row-odd td.c-num,  tr.row-even td.c-num { background:#f8faff; }
+  tr.row-odd td.c-stat, tr.row-even td.c-stat { background:#e8f0f8; }
+  /* State cells always override row bg */
+  td.c-ok,td.c-fa,td.c-fj,td.c-ti,td.c-tj,td.c-nc{ background-color:unset; }
+
+  /* Total row */
+  tr.total-row td{ background:#1a2744!important; color:#c8ddf0!important; font-size:6.5pt; font-weight:700; border-color:#2a3a5a; font-family:'Courier New',monospace; }
+  tr.total-row td.c-name{ color:#8ab4d8!important; font-size:6pt; text-transform:uppercase; letter-spacing:.05em; }
+  tr.total-row td.total-a { color:#6af0a0!important; }
+  tr.total-row td.total-pct{ color:#60d0ff!important; }
+  tr.total-row td.total-f { color:#ff7070!important; }
+  tr.total-row td.total-fj{ color:#ffaa60!important; }
+  tr.total-row td.total-ti{ color:#ffc060!important; }
+  tr.total-row td.total-tj{ color:#c0a0ff!important; }
+
+  /* Day total row */
+  tr.day-total td{ background:#253555!important; color:#8ab4d8!important; font-size:6pt; font-family:'Courier New',monospace; border-color:#1a2744; }
+  tr.day-total td.c-name{ color:#6080a8!important; font-size:5.5pt; }
+
+  /* ── LEGEND ── */
+  .legend{ display:flex; align-items:center; gap:10px; margin-top:6px; padding:5px 10px; background:#1a2744; border-radius:5px; flex-wrap:wrap; }
+  .leg-title{ font-size:6.5pt; font-weight:800; color:#8ab4d8; text-transform:uppercase; letter-spacing:.1em; margin-right:4px; }
+  .leg-item{ display:flex; align-items:center; gap:3px; font-size:6.5pt; color:#c8ddf0; }
+  .leg-dot{ width:12px; height:12px; border-radius:2px; display:flex; align-items:center; justify-content:center; font-size:7pt; font-weight:900; color:#fff; flex-shrink:0; }
+
+  /* ── FOOTER ── */
+  .page-footer{ display:flex; justify-content:space-between; align-items:flex-end; margin-top:6px; padding-top:4px; border-top:1px solid #c0cce0; }
+  .footer-left{ font-size:6pt; color:#8090b0; }
+  .sign-area{ display:flex; gap:30px; }
+  .sign-box{ text-align:center; }
+  .sign-line{ width:120px; border-top:1px solid #808080; margin:0 auto 2px; margin-top:22px; }
+  .sign-label{ font-size:6pt; color:#606070; }
+
+  @media print{
+    body{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .no-print{ display:none!important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- PRINT BUTTON (only on screen) -->
+<div class="no-print" style="position:fixed;top:12px;right:12px;z-index:999;display:flex;gap:8px">
+  <button onclick="window.print()" style="font-family:Arial;font-size:13px;font-weight:700;padding:9px 20px;background:#1a9e40;color:#fff;border:none;border-radius:8px;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.3)">🖨 Imprimir / Guardar PDF</button>
+  <button onclick="window.close()" style="font-family:Arial;font-size:13px;font-weight:700;padding:9px 14px;background:#444;color:#fff;border:none;border-radius:8px;cursor:pointer">✕ Cerrar</button>
+</div>
+
+<!-- PAGE HEADER -->
+<div class="page-header">
+  <div class="ph-brand">
+    <div class="ph-brand-title">📋 AsistCtrl</div>
+    <div class="ph-brand-sub">Control de Asistencia</div>
+  </div>
+  <div class="ph-est">
+    <div class="ph-est-name">${estName}</div>
+    <div class="ph-est-addr">${estAddr}</div>
+  </div>
+  <div class="ph-meta">
+    <div class="ph-meta-item"><span class="ph-meta-lbl">Curso</span><span class="ph-meta-val">${courseName}</span></div>
+    <div class="ph-meta-item"><span class="ph-meta-lbl">Período</span><span class="ph-meta-val">${monthName} ${Y}</span></div>
+    <div class="ph-meta-item"><span class="ph-meta-lbl">Total alumnos</span><span class="ph-meta-val">${sts.length}</span></div>
+    <div class="ph-meta-item"><span class="ph-meta-lbl">Días hábiles</span><span class="ph-meta-val">${workdaysBase} días</span></div>
+  </div>
+  <div class="ph-stats">
+    <div class="ph-stat"><span class="ph-stat-val v-green">${totalDays}</span><span class="ph-stat-lbl">Total días</span></div>
+    <div class="ph-stat"><span class="ph-stat-val v-green">${workdaysBase}</span><span class="ph-stat-lbl">Hábiles</span></div>
+    <div class="ph-stat"><span class="ph-stat-val v-orange">${noClassDays}</span><span class="ph-stat-lbl">Sin clases</span></div>
+    <div class="ph-stat"><span class="ph-stat-val">${netDays}</span><span class="ph-stat-lbl">Hábiles netos</span></div>
+  </div>
+</div>
+
+<!-- ATTENDANCE TABLE -->
+<table>
+  <thead>
+    <tr>
+      <th class="h-num">#</th>
+      <th class="h-name">Alumno</th>
+      ${workDays.map(d=>`<th class="h-day${isWk(Y,m,d)?' wk-hdr':''}">${d}</th>`).join('')}
+      <th class="h-stat">Asi.</th>
+      <th class="h-stat">%</th>
+      <th class="h-stat">Flt.</th>
+      <th class="h-stat">FJ</th>
+      <th class="h-stat">TI</th>
+      <th class="h-stat">TJ</th>
+    </tr>
+    <tr class="sub-hdr">
+      <th class="h-num"></th>
+      <th class="h-name"></th>
+      ${workDays.map(d=>`<th class="h-day">${DOW_ES[new Date(Y,m,d).getDay()]}</th>`).join('')}
+      <th class="h-stat">Asist.</th>
+      <th class="h-stat">% Asi.</th>
+      <th class="h-stat">Faltas</th>
+      <th class="h-stat">F.Just</th>
+      <th class="h-stat">Tard.I</th>
+      <th class="h-stat">Tard.J</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${tbodyHTML}
+    <tr class="day-total">
+      <td class="c-num"></td>
+      <td class="c-name">Asistencias del día</td>
+      ${dayTotals.map(n=>`<td>${n}</td>`).join('')}
+      <td colspan="6"></td>
+    </tr>
+    <tr class="total-row">
+      <td class="c-num"></td>
+      <td class="c-name">TOTALES DEL MES</td>
+      ${workDays.map(()=>'<td></td>').join('')}
+      <td class="total-a">${totA}</td>
+      <td class="total-pct">${avgPct}%</td>
+      <td class="total-f">${totF}</td>
+      <td class="total-fj">${totFJ}</td>
+      <td class="total-ti">${totI}</td>
+      <td class="total-tj">${totJ}</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- LEGEND -->
+<div class="legend">
+  <span class="leg-title">Leyenda:</span>
+  <div class="leg-item"><div class="leg-dot" style="background:#1a9e40">P</div> Asistió puntualmente</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#fcfcfc;border:1px solid #ccc;color:#aaa;font-size:7pt">&nbsp;</div> Sin registrar (vacío)</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#d63031">A</div> No asistió</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#b84800;font-size:5.5pt">F.J.</div> Falta justificada</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#e07800;font-size:5.5pt">T.I.</div> Tardanza s/justificar</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#7030d0;font-size:5.5pt">T.J.</div> Tardanza justificada</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#4a5a7a;font-size:5pt">S/C</div> Sin clases (no computa)</div>
+  <span style="margin-left:auto;font-size:6pt;color:#8ab4d8">Col. resumen → Asi.=Asistencias · %=Porcentaje · Flt.=Faltas · F.J.=Falta Just. · Tard.=Tardanzas</span>
+</div>
+
+<!-- FOOTER -->
+<div class="page-footer">
+  <div class="footer-left">
+    Generado por AsistCtrl · ${new Date().toLocaleDateString('es-AR',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}
+  </div>
+  <div class="sign-area">
+    <div class="sign-box">
+      <div class="sign-line"></div>
+      <div class="sign-label">Firma Docente</div>
+    </div>
+    <div class="sign-box">
+      <div class="sign-line"></div>
+      <div class="sign-label">Firma Directivo</div>
+    </div>
+    <div class="sign-box">
+      <div class="sign-line"></div>
+      <div class="sign-label">Sello Institucional</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>`;
+
+  const win = window.open('','_blank','width=1200,height=800');
+  win.document.write(html);
+  win.document.close();
+  showToast('🖨 Planilla lista para imprimir');
 }
 
 // ════════════════════════════════════════════════
