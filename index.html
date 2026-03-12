@@ -807,7 +807,14 @@ let drwStudent = null, drwCourse = null;
 // DATABASE
 // ════════════════════════════════════════════════
 function loadDB() {
-  try { const r=localStorage.getItem('asistDB_v4'); if(r) return JSON.parse(r); } catch(e){}
+  try {
+    const r=localStorage.getItem('asistDB_v4');
+    if(r){
+      const db=JSON.parse(r);
+      if(db.data) Object.keys(db.data).forEach(k=>{ if(!db.data[k].legajos) db.data[k].legajos={}; });
+      return db;
+    }
+  } catch(e){}
   return buildFreshDB();
 }
 function saveDB() { localStorage.setItem('asistDB_v4', JSON.stringify(DB)); }
@@ -2001,7 +2008,7 @@ function setDocDrawer(sid,docId,status){
   leg.docs[docId]=(prev===status)?null:status;
   if(leg.docs[docId]==='ok'){ if(!leg.docDates) leg.docDates={}; leg.docDates[docId]=new Date().toLocaleDateString('es-AR'); }
   saveDB();
-  renderDrawerDocs({id:sid,name:'',code:'',num:0});
+  if(drwStudent&&drwStudent.id===sid) renderDrawerDocs(drwStudent);
   if(curView==='legajos') renderLegajos();
 }
 function renderDrawerObs(st){
@@ -2041,7 +2048,7 @@ function saveObservation(){
 function deleteObs(sid,oid){
   const leg=getStudLeg(sid);
   leg.obs=(leg.obs||[]).filter(o=>o.id!==oid);
-  saveDB(); renderDrawerObs({id:sid,name:'',code:'',num:0});
+  saveDB(); if(drwStudent&&drwStudent.id===sid) renderDrawerObs(drwStudent);
   if(curView==='legajos') renderLegajos();
 }
 
