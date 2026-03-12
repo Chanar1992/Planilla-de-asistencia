@@ -1879,14 +1879,14 @@ function exportPDF(){
   td.c-name{ text-align:left; padding:2px 4px; font-size:7pt; font-weight:700; color:#1a2744; background:#f8faff; border-right:2px solid #8aaac8; }
   td.c-code{ font-size:5.5pt; color:#8090b0; font-weight:400; font-family:'Courier New',monospace; margin-top:1px; }
 
-  /* Attendance states */
-  td.c-ok  { background:#1a9e40; color:#fff; font-size:8pt; font-weight:900; border-color:#148030; }
-  td.c-fa  { background:#d63031; color:#fff; font-size:8pt; font-weight:900; border-color:#a02020; }
-  td.c-fj  { background:#b84800; color:#fff; font-size:6pt; font-weight:900; border-color:#903400; }
-  td.c-ti  { background:#e07800; color:#fff; font-size:8pt; font-weight:900; border-color:#b05800; }
-  td.c-tj  { background:#7030d0; color:#fff; font-size:8pt; font-weight:900; border-color:#5020a0; }
-  td.c-nc  { background:repeating-linear-gradient(45deg,#4a5a7a,#4a5a7a 2px,#2a3a5a 2px,#2a3a5a 5px); color:#c8d8f0; font-size:7pt; border-color:#2a3a5a; }
-  td.c-empty{ color:#bbb; font-size:6.5pt; background:#fcfcfc; }
+  /* Attendance states — !important to override row stripe */
+  td.c-ok  { background:#1a9e40!important; color:#fff!important; font-size:8pt; font-weight:900; border-color:#148030; }
+  td.c-fa  { background:#d63031!important; color:#fff!important; font-size:8pt; font-weight:900; border-color:#a02020; }
+  td.c-fj  { background:#b84800!important; color:#fff!important; font-size:7pt; font-weight:900; border-color:#903400; letter-spacing:-.3pt; }
+  td.c-ti  { background:#e07800!important; color:#fff!important; font-size:7pt; font-weight:900; border-color:#b05800; letter-spacing:-.3pt; }
+  td.c-tj  { background:#7030d0!important; color:#fff!important; font-size:7pt; font-weight:900; border-color:#5020a0; letter-spacing:-.3pt; }
+  td.c-nc  { background:#4a5a7a!important; color:#c8d8f0!important; font-size:6.5pt; font-weight:700; border-color:#2a3a5a; letter-spacing:-.5pt; }
+  td.c-empty{ color:transparent; font-size:6.5pt; background:#fff!important; }
 
   /* Stats columns */
   td.c-stat{ font-size:7pt; font-weight:700; font-family:'Courier New',monospace; background:#e8f0f8; border-left:2px solid #8aaac8; }
@@ -1902,8 +1902,7 @@ function exportPDF(){
   tr.row-odd td.c-name, tr.row-even td.c-name,
   tr.row-odd td.c-num,  tr.row-even td.c-num { background:#f8faff; }
   tr.row-odd td.c-stat, tr.row-even td.c-stat { background:#e8f0f8; }
-  /* State cells always override row bg */
-  td.c-ok,td.c-fa,td.c-fj,td.c-ti,td.c-tj,td.c-nc{ background-color:unset; }
+  /* State cell backgrounds enforced via !important above */
 
   /* Total row */
   tr.total-row td{ background:#1a2744!important; color:#c8ddf0!important; font-size:6.5pt; font-weight:700; border-color:#2a3a5a; font-family:'Courier New',monospace; }
