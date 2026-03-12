@@ -266,9 +266,9 @@ tr.er td.fx2{color:#9aaccf!important;font-style:italic;font-size:11px}
 .teacher-assignment{background:#f5f8fc;border-radius:8px;padding:10px 12px;margin-bottom:8px}
 .ta-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
 .ta-name{font-size:13px;font-weight:700;color:#1a2744;display:flex;align-items:center;gap:6px}
-.ta-courses{display:flex;gap:5px;flex-wrap:wrap}
-.course-chip{font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px;background:#dceeff;color:#1050a0;border:1px solid #90c0f0}
-.course-chip.empty{background:#f0f0f0;color:#9a9aaa;border-color:#d0d0d8;font-style:italic}
+.ta-courses{display:flex;gap:4px;flex-wrap:wrap}
+.course-chip{font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px;background:#dceeff;color:#1050a0;border:1px solid #90c0f0;font-family:'JetBrains Mono',monospace;white-space:nowrap}
+.course-chip.empty{background:#f0f0f0;color:#9a9aaa;border-color:#d0d0d8;font-style:italic;font-family:inherit;font-weight:600}
 
 /* Checkboxes multi-select */
 .check-group{display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto;padding:8px;background:var(--bg-page);border:1px solid var(--border);border-radius:8px;margin-top:6px}
@@ -284,7 +284,7 @@ tr.er td.fx2{color:#9aaccf!important;font-style:italic;font-size:11px}
 .teacher-mini{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:7px;background:rgba(255,255,255,.7);margin-bottom:5px}
 .teacher-mini:last-child{margin-bottom:0}
 .tm-name{font-size:12px;font-weight:700;flex:1}
-.tm-courses{font-size:10px;color:#6b7a9a}
+.tm-courses{font-size:10px;color:#6b7a9a;display:flex;flex-wrap:wrap;gap:3px;align-items:center}
 
 /* Turn badge */
 .turn-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px;border:1px solid}
@@ -2037,6 +2037,18 @@ function buildSumRows(tbody,sts,days,c,y,m,dt,wd){
 
 function fixFx3Left(){} // fx3 is left:0, no calculation needed
 
+function courseChipLabel(key, courses){
+  const c = courses[key];
+  if(!c) return key;
+  // Usar año+div como base compacta, con turno abreviado
+  const year = c.year||'';
+  const div  = c.div||'';
+  const tMap = {mañana:'M', tarde:'T', noche:'N', completo:'C'};
+  const t    = tMap[c.turno] || (c.turno?c.turno[0].toUpperCase():'');
+  if(year && div) return `${year}°${div}${t?'·'+t:''}`;
+  return c.name||key;
+}
+
 // ════════════════════════════════════════════════
 // DAY STATS
 // ════════════════════════════════════════════════
@@ -2331,7 +2343,7 @@ function renderAdminsList(){
         return `<div class="teacher-mini">
           <span style="font-size:16px">👩‍🏫</span>
           <div class="tm-name">${t.name} <small style="color:#9aaccf;font-size:10px">(${t.username})</small></div>
-          <div class="tm-courses" style="flex:1">${(t.courses||[]).length?t.courses.map(c=>`<span class="course-chip">${getCourses()[c]?getCourses()[c].name:c}</span>`).join(' '):'<span class="course-chip empty">Sin cursos</span>'}</div>
+          <div class="tm-courses" style="flex:1">${(t.courses||[]).length?t.courses.map(c=>`<span class="course-chip" title="${getCourses()[c]?getCourses()[c].name:c}">${courseChipLabel(c,getCourses())}</span>`).join(' '):'<span class="course-chip empty">Sin cursos</span>'}</div>
           <div style="display:flex;gap:4px;margin-left:6px">
             ${tCanEdit?`<button class="icon-btn" style="width:24px;height:24px;font-size:12px" onclick="openEditUser('${t.id}');closeOv('usersOv')" title="Editar">✏️</button>`:''}
             ${tCanDel?`<button class="icon-btn danger" style="width:24px;height:24px;font-size:12px" onclick="deleteUser('${t.id}')" title="Eliminar">🗑️</button>`:''}
@@ -2375,7 +2387,7 @@ function renderTeachersList(){
           ${canDel?`<button class="icon-btn danger" onclick="deleteUser('${t.id}')" title="Eliminar">🗑️</button>`:''}
         </div>
       </div>
-      <div class="ta-courses">${myCourses.length?myCourses.map(c=>`<span class="course-chip">${getCourses()[c]?getCourses()[c].name:c}</span>`).join(''):'<span class="course-chip empty">Sin cursos asignados</span>'}</div>
+      <div class="ta-courses">${myCourses.length?myCourses.map(c=>`<span class="course-chip" title="${getCourses()[c]?getCourses()[c].name:c}">${courseChipLabel(c,getCourses())}</span>`).join(''):'<span class="course-chip empty">Sin cursos asignados</span>'}</div>
     </div>`;
   }).join('');
 }
