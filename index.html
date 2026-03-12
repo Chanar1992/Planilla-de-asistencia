@@ -23,6 +23,7 @@
   --input-bg:#ffffff;--input-border:#c0cce0;--input-color:#1a1a2e;
   --notes-bg:#ffffff;--notes-item-bg:#fffbf0;--notes-item-border:#f0d888;
   --obs-form-bg:#f8fafc;--obs-input-bg:#ffffff;
+  --info-bar-bg:#dce8f4;
   --sn-bg:rgba(80,120,200,0.12);--sn-border:#7090c0;--sn-color:#4060a0;--sn-hover:#2050c0;--sn-bg-hover:rgba(80,120,200,0.22);
 }
 body.dark{
@@ -32,11 +33,12 @@ body.dark{
   --text-main:#c8ddf0;--text-sub:#7090b0;--text-code:#7090b0;
   --sn-border:#3a5070;--sn-color:#3a5070;
   --off-bg:#141e2c;--off-color:#2a3a4c;
-  --sheet-bg:#0a1018;
+  --sheet-bg:#0d1828;
   --modal-bg:#182030;--modal-title:#c8ddf0;--modal-border:#253545;
   --input-bg:#0f1a28;--input-border:#2a3a50;--input-color:#c8ddf0;
   --notes-bg:#182030;--notes-item-bg:#1a2030;--notes-item-border:#2a3040;
   --obs-form-bg:#0f1828;--obs-input-bg:#0f1828;
+  --info-bar-bg:#0e1f34;
   --sn-bg:rgba(100,160,255,0.10);--sn-border:#4a7ab0;--sn-color:#6090c8;--sn-hover:#7ab0f0;--sn-bg-hover:rgba(100,160,255,0.20);
 }
 body{font-family:'Nunito',sans-serif;background:var(--bg-page);color:var(--text-main);min-height:100vh;font-size:13px;transition:background .2s,color .2s}
@@ -75,7 +77,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg-page);color:var(--text-
 .pip-profesor{background:#2563c4;color:#fff}
 .hbtns{margin-left:auto;display:flex;gap:6px;align-items:center;flex-shrink:0}
 .hbtn{font-family:‘Nunito’,sans-serif;font-size:12px;font-weight:700;padding:6px 12px;border:none;border-radius:6px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px;white-space:nowrap}
-.hb-ghost{background:rgba(255,255,255,.1);color:#c8d8f0;border:1px solid rgba(255,255,255,.2)}.hb-ghost:hover{background:rgba(255,255,255,.2)}
+.hb-ghost{background:rgba(255,255,255,.15);color:#e8f4ff;border:1px solid rgba(255,255,255,.35);font-weight:700}.hb-ghost:hover{background:rgba(255,255,255,.28)}
 .hb-green{background:var(–green);color:#fff}.hb-green:hover{background:var(–green2)}
 .hb-blue{background:var(–blue);color:#fff}.hb-blue:hover{background:#1d50a8}
 .hb-orange{background:#e8a020;color:#fff}.hb-orange:hover{background:#c88010}
@@ -83,14 +85,14 @@ body{font-family:'Nunito',sans-serif;background:var(--bg-page);color:var(--text-
 .hb-purple{background:var(–purple);color:#fff}.hb-purple:hover{background:#6050b0}
 
 /* ══════════ SHEET ══════════ */
-.sheet{background:var(–sheet-bg);padding:12px 16px 0}
+.sheet{background:var(–sheet-bg);padding:12px 16px 0;min-height:60px}
 .info-bar{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
-.info-box{background:var(–navy);color:#fff;border-radius:6px;padding:6px 14px;display:flex;align-items:center;gap:10px;font-size:12px}
+.info-box{background:#1a2f50;color:#fff;border-radius:6px;padding:6px 14px;display:flex;align-items:center;gap:10px;font-size:12px;border:1px solid rgba(255,255,255,.08)}
 .info-box label{color:#8ab4d8;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em}
 .info-box input,.info-box select{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;font-family:‘Nunito’,sans-serif;font-size:12px;font-weight:700;padding:3px 8px;border-radius:4px;outline:none}
 .info-box select option{background:#1a2744}
-.big-title{flex:1;text-align:center;background:var(–hdr);color:#e8f4ff;font-size:16px;font-weight:900;letter-spacing:.04em;padding:9px 16px;border-radius:8px;text-transform:uppercase;box-shadow:0 2px 6px rgba(0,0,0,.2)}
-.month-badge{background:#1a6b3c;color:#fff;font-size:14px;font-weight:800;padding:8px 16px;border-radius:8px;min-width:158px;text-align:center}
+.big-title{flex:1;text-align:center;background:#1e3a5f;color:#e8f4ff;font-size:16px;font-weight:900;letter-spacing:.04em;padding:9px 16px;border-radius:8px;text-transform:uppercase;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+.month-badge{background:#1a6b3c;color:#fff;font-size:14px;font-weight:800;padding:8px 16px;border-radius:8px;min-width:158px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.2)}
 
 /* ══════════ TABS ══════════ */
 .tabs-bar{display:flex;align-items:flex-end;gap:3px;padding:0 0 0 2px;overflow-x:auto;scrollbar-width:none}
@@ -404,6 +406,11 @@ tr.er td.fx2{color:#9aaccf!important;font-style:italic;font-size:11px}
 .obs-save-btn:hover{opacity:.88}
 .leg-st-code{font-size:9px;color:var(–text-sub);margin-top:1px}
 .admin-username-mono{font-family:‘JetBrains Mono’,monospace;font-size:10px;color:var(–text-sub)}
+body.dark .hb-green{background:var(–green)!important;color:#fff!important}
+body.dark .hb-blue{background:var(–blue)!important;color:#fff!important}
+body.dark .hb-orange{background:#e8a020!important;color:#fff!important}
+body.dark .hb-red{background:var(–red)!important;color:#fff!important}
+body.dark .hb-purple{background:var(–purple)!important;color:#fff!important}
 /* ── Dark mode extra overrides ── */
 body.dark .leg-stat{background:#1e3050;color:#c8ddf0}
 body.dark .notes-panel{background:var(–modal-bg);border-color:var(–border)}
@@ -590,7 +597,7 @@ body.dark .att-chip-val{color:inherit}
 
   <div id="legajosView" style="display:none;padding:12px 16px 16px;background:var(--sheet-bg)">
     <!-- Barra superior con volver + selector de curso/turno -->
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;background:var(--info-bar-bg);padding:10px 14px;border-radius:10px;border:1px solid var(--border)">
       <button onclick="switchView('asistencia')" style="font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;padding:7px 14px;background:#1a2744;color:#fff;border:none;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:background .15s" onmouseover="this.style.background='#2a3a5a'" onmouseout="this.style.background='#1a2744'">‹ Volver a Asistencia</button>
       <div id="legCourseSelector" style="display:flex;align-items:center;gap:6px;background:#1a2744;border-radius:8px;padding:5px 12px">
         <span style="color:#8ab4d8;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em">Curso</span>
