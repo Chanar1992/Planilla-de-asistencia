@@ -1842,7 +1842,8 @@ function exportPDF(){
 <style>
   @page { size: A4 landscape; margin: 10mm 8mm 10mm 8mm; }
   *{ box-sizing:border-box; margin:0; padding:0; }
-  body{ font-family: Arial, Helvetica, sans-serif; font-size: 7.5pt; color: #111; background: #fff; }
+  body{ font-family: Arial, Helvetica, sans-serif; font-size: 7.5pt; color: #111; background: #fff;
+         -webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact; }
 
   /* ── HEADER ── */
   .page-header{ display:flex; align-items:stretch; gap:0; border:2px solid #1a2744; border-radius:6px; overflow:hidden; margin-bottom:6px; }
@@ -1879,14 +1880,29 @@ function exportPDF(){
   td.c-name{ text-align:left; padding:2px 4px; font-size:7pt; font-weight:700; color:#1a2744; background:#f8faff; border-right:2px solid #8aaac8; }
   td.c-code{ font-size:5.5pt; color:#8090b0; font-weight:400; font-family:'Courier New',monospace; margin-top:1px; }
 
-  /* Attendance states — !important to override row stripe */
-  td.c-ok  { background:#1a9e40!important; color:#fff!important; font-size:8pt; font-weight:900; border-color:#148030; }
-  td.c-fa  { background:#d63031!important; color:#fff!important; font-size:8pt; font-weight:900; border-color:#a02020; }
-  td.c-fj  { background:#b84800!important; color:#fff!important; font-size:7pt; font-weight:900; border-color:#903400; letter-spacing:-.3pt; }
-  td.c-ti  { background:#e07800!important; color:#fff!important; font-size:7pt; font-weight:900; border-color:#b05800; letter-spacing:-.3pt; }
-  td.c-tj  { background:#7030d0!important; color:#fff!important; font-size:7pt; font-weight:900; border-color:#5020a0; letter-spacing:-.3pt; }
-  td.c-nc  { background:#4a5a7a!important; color:#c8d8f0!important; font-size:6.5pt; font-weight:700; border-color:#2a3a5a; letter-spacing:-.5pt; }
-  td.c-empty{ color:transparent; font-size:6.5pt; background:#fff!important; }
+  /* Attendance states
+     Strategy: DARK TEXT on LIGHT tinted bg + thick left border
+     Works even when browser "print background" is OFF,
+     because text color and borders always print */
+  td.c-ok  { color:#0a6620; font-size:8pt; font-weight:900;
+             border-left:4px solid #1a9e40!important;
+             background:#e8f8ee!important; }
+  td.c-fa  { color:#a01010; font-size:8pt; font-weight:900;
+             border-left:4px solid #d63031!important;
+             background:#fff0f0!important; }
+  td.c-fj  { color:#7a2e00; font-size:7pt; font-weight:900; letter-spacing:-.3pt;
+             border-left:4px solid #b84800!important;
+             background:#fff4ec!important; }
+  td.c-ti  { color:#7a4500; font-size:7pt; font-weight:900; letter-spacing:-.3pt;
+             border-left:4px solid #e07800!important;
+             background:#fff8e8!important; }
+  td.c-tj  { color:#4a1898; font-size:7pt; font-weight:900; letter-spacing:-.3pt;
+             border-left:4px solid #7030d0!important;
+             background:#f5f0ff!important; }
+  td.c-nc  { color:#3a4a6a; font-size:6pt; font-weight:700; letter-spacing:-.5pt;
+             border-left:4px solid #4a5a7a!important;
+             background:#eef0f4!important; font-style:italic; }
+  td.c-empty{ color:transparent; background:#fff!important; border-left:1px solid #d0d8e0!important; }
 
   /* Stats columns */
   td.c-stat{ font-size:7pt; font-weight:700; font-family:'Courier New',monospace; background:#e8f0f8; border-left:2px solid #8aaac8; }
@@ -1933,8 +1949,15 @@ function exportPDF(){
   .sign-label{ font-size:6pt; color:#606070; }
 
   @media print{
-    body{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    body{ -webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact; }
     .no-print{ display:none!important; }
+    /* Reinforce text colors when bg is stripped */
+    td.c-ok { color:#0a6620!important; border-left:4px solid #1a9e40!important; }
+    td.c-fa { color:#a01010!important; border-left:4px solid #d63031!important; }
+    td.c-fj { color:#7a2e00!important; border-left:4px solid #b84800!important; }
+    td.c-ti { color:#7a4500!important; border-left:4px solid #e07800!important; }
+    td.c-tj { color:#4a1898!important; border-left:4px solid #7030d0!important; }
+    td.c-nc { color:#3a4a6a!important; border-left:4px solid #4a5a7a!important; }
   }
 </style>
 </head>
