@@ -2761,66 +2761,84 @@ function startGdriveUpload(){
   window.location.href=url;
 }
 
-async function gdriveGetOrCreateFolder(token){
-  const FOLDER_NAME = 'AsistCtrl';
-  // Buscar si ya existe la carpeta
-  const q = encodeURIComponent(`name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
-  const s = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)`,
+const MESES_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+// Obtener o crear carpeta en Drive dentro de un padre dado
+async function gdriveEnsureFolder(token, name, parentId){
+  const p = parentId ? ` and '${parentId}' in parents` : '';
+  const q = encodeURIComponent(`name='${name}' and mimeType='application/vnd.google-apps.folder' and trashed=false${p}`);
+  const s = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id)`,
     {headers:{Authorization:'Bearer '+token}});
   const d = await s.json();
   if(d.files && d.files[0]) return d.files[0].id;
-  // No existe — crearla
+  const body = {name, mimeType:'application/vnd.google-apps.folder'};
+  if(parentId) body.parents = [parentId];
   const r = await fetch('https://www.googleapis.com/drive/v3/files',{
     method:'POST',
     headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
-    body:JSON.stringify({name:FOLDER_NAME, mimeType:'application/vnd.google-apps.folder'})
+    body:JSON.stringify(body)
   });
   const f = await r.json();
   return f.id;
 }
 
+// Subir o sobreescribir un archivo JSON en Drive
+async function gdriveUploadFile(token, filename, fileContent, parentId){
+  const boundary = '--asistctrl--';
+  const q = encodeURIComponent(`name='${filename}' and '${parentId}' in parents and trashed=false`);
+  const s = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id)`,
+    {headers:{Authorization:'Bearer '+token}});
+  const d = await s.json();
+  const existingId = d.files && d.files[0] ? d.files[0].id : null;
+  const meta = JSON.stringify(existingId
+    ? {name:filename}
+    : {name:filename, mimeType:'application/json', parents:[parentId]}
+  );
+  const body = '--'+boundary+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'
+    +meta+'\r\n--'+boundary+'\r\nContent-Type: application/json\r\n\r\n'
+    +fileContent+'\r\n--'+boundary+'--';
+  const method = existingId ? 'PATCH' : 'POST';
+  const apiUrl = existingId
+    ? `https://www.googleapis.com/upload/drive/v3/files/${existingId}?uploadType=multipart`
+    : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
+  const r = await fetch(apiUrl,{method,headers:{
+    Authorization:'Bearer '+token,
+    'Content-Type':'multipart/related; boundary="'+boundary+'"'
+  },body});
+  if(!r.ok){ const e=await r.json(); throw new Error(e.error&&e.error.message||r.status); }
+  return r;
+}
+
 async function gdriveDoUpload(token){
   showToast('☁ Subiendo a Google Drive...','inf');
   try{
-    // 1. Obtener o crear carpeta AsistCtrl
-    const folderId = await gdriveGetOrCreateFolder(token);
-    const filename = 'asistCtrl_backup_'+new Date().toISOString().slice(0,10)+'.json';
-    const fileContent = JSON.stringify({v:4,date:new Date().toISOString(),DB},null,2);
-    const boundary = '--asistctrl--';
+    const now    = new Date();
+    const year   = now.getFullYear();
+    const month  = now.getMonth();       // 0-based
+    const day    = now.getDate();
+    const daysInMonth = new Date(year, month+1, 0).getDate();
+    const mesNombre = MESES_ES[month];
+    const fileContent = JSON.stringify({v:4, date:now.toISOString(), DB}, null, 2);
 
-    // 2. Buscar si ya existe un archivo con ese nombre en la carpeta
-    const q = encodeURIComponent(`name='${filename}' and '${folderId}' in parents and trashed=false`);
-    const s = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id)`,
-      {headers:{Authorization:'Bearer '+token}});
-    const d = await s.json();
-    const existingId = d.files && d.files[0] ? d.files[0].id : null;
+    // Estructura: AsistCtrl / 2026 / Marzo / archivo.json
+    const rootId  = await gdriveEnsureFolder(token, 'AsistCtrl', null);
+    const yearId  = await gdriveEnsureFolder(token, String(year), rootId);
+    const monthId = await gdriveEnsureFolder(token, mesNombre, yearId);
 
-    // 3. Subir — PATCH si existe, POST si es nuevo
-    const meta = JSON.stringify(existingId
-      ? {name:filename}
-      : {name:filename, mimeType:'application/json', parents:[folderId]}
-    );
-    const body = '--'+boundary+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'
-      +meta+'\r\n--'+boundary+'\r\nContent-Type: application/json\r\n\r\n'
-      +fileContent+'\r\n--'+boundary+'--';
-    const method = existingId ? 'PATCH' : 'POST';
-    const apiUrl = existingId
-      ? `https://www.googleapis.com/upload/drive/v3/files/${existingId}?uploadType=multipart`
-      : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
+    // Backup diario
+    const dailyName = `asistCtrl_${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}.json`;
+    await gdriveUploadFile(token, dailyName, fileContent, monthId);
+    showToast(`✅ Backup guardado → AsistCtrl/${year}/${mesNombre}/${dailyName}`);
 
-    const r = await fetch(apiUrl,{method,headers:{
-      Authorization:'Bearer '+token,
-      'Content-Type':'multipart/related; boundary="'+boundary+'"'
-    },body});
-
-    if(r.ok){
-      showToast('✅ Backup guardado en Drive → carpeta AsistCtrl');
-    } else {
-      const e = await r.json();
-      showToast('Error Drive: '+(e.error&&e.error.message||r.status),'err');
+    // Si es el último día del mes → también backup mensual completo
+    if(day === daysInMonth){
+      const monthlyName = `asistCtrl_${year}-${mesNombre}-COMPLETO.json`;
+      await gdriveUploadFile(token, monthlyName, fileContent, monthId);
+      showToast(`📦 Backup mensual generado → ${mesNombre} ${year}`);
     }
+
   }catch(e){
-    showToast('Error de conexión con Drive: '+e.message,'err');
+    showToast('Error Drive: '+e.message,'err');
   }
 }
 
