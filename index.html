@@ -675,6 +675,9 @@ thead th.dth{ min-width:30px }
     <div class="l-hint">
       <b>superadmin</b> / <b>1234</b> &nbsp;|&nbsp; <b>admin</b> / <b>1234</b> &nbsp;|&nbsp; <b>prof</b> / <b>1234</b>
     </div>
+    <div id="resetDbSection" style="margin-top:10px;text-align:center;display:none">
+      <button onclick="hardResetDB()" style="background:none;border:none;color:rgba(255,255,255,.35);font-size:11px;cursor:pointer;text-decoration:underline">⚠️ Restablecer datos de demo</button>
+    </div>
   </div>
 </div>
 
@@ -1547,6 +1550,15 @@ function getTeachersUnderMe(){
 function populateLoginEst(){
   const sel=document.getElementById('loginEstSel');
   sel.innerHTML=DB.establishments.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
+  // Mostrar botón de reset si no hay establecimientos
+  const resetSection=document.getElementById('resetDbSection');
+  if(resetSection) resetSection.style.display=(DB.establishments.length===0)?'block':'none';
+}
+
+function hardResetDB(){
+  if(!confirm('¿Restablecer todos los datos al estado inicial de demo? Se perderán los datos actuales.')) return;
+  localStorage.removeItem('asistDB_v5');
+  location.reload();
 }
 function doLogin(){
   const estId=document.getElementById('loginEstSel').value;
@@ -3855,6 +3867,15 @@ if(btn) btn.textContent = ‘☀️’;
 // INIT
 // ════════════════════════════════════════════════
 populateLoginEst();
+
+// Si después de popular no hay establecimientos, mostrar botón reset siempre
+(function checkEmptyEst(){
+const sel = document.getElementById(‘loginEstSel’);
+const resetSection = document.getElementById(‘resetDbSection’);
+if(sel && sel.options.length === 0 && resetSection){
+resetSection.style.display = ‘block’;
+}
+})();
 
 // Auto-login si venimos de un redirect OAuth (debe ir DESPUÉS de populateLoginEst)
 (function autoLoginAfterOAuth(){
