@@ -710,6 +710,7 @@ body.dark .tb-completo{background:rgba(45,164,78,.15)!important;color:#5ad48a!im
         <select id="courseSelect" onchange="changeCourse()"></select>
         <button class="hbtn hb-ghost" id="addCourseBtn" style="padding:3px 9px;font-size:11px;" onclick="openAddCourse()">+</button>
         <button class="hbtn hb-ghost" id="editCourseBtn" style="padding:3px 9px;font-size:11px;display:none" onclick="openEditCourse()" title="Editar curso">✏️</button>
+        <button class="hbtn" style="padding:3px 9px;font-size:11px;background:#1a5a3a;color:#fff" onclick="switchView('reportes')" title="Ver reporte de asistencia">📊</button>
       </div>
       <div class="info-box">
         <label>Fecha</label>
@@ -852,6 +853,42 @@ body.dark .tb-completo{background:rgba(45,164,78,.15)!important;color:#5ad48a!im
       <table class="leg-table">
         <thead id="legThead"></thead>
         <tbody id="legTbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ REPORTES VIEW ══ -->
+  <div id="reportesView" style="display:none;padding:12px 16px 16px;background:var(--sheet-bg)">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;background:var(--info-bar-bg);padding:10px 14px;border-radius:10px;border:1px solid var(--border)">
+      <button onclick="switchView('asistencia')" style="font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;padding:7px 14px;background:#1a2744;color:#fff;border:none;border-radius:8px;cursor:pointer" onmouseover="this.style.background='#2a3a5a'" onmouseout="this.style.background='#1a2744'">‹ Volver</button>
+      <!-- Selector curso -->
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:11px;font-weight:700;color:var(--text-sub)">Curso</span>
+        <select id="rpCourseSelect" class="leg-sel" onchange="renderReportes()"></select>
+      </div>
+      <!-- Rango -->
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        <span style="font-size:11px;font-weight:700;color:var(--text-sub)">Período</span>
+        <select id="rpRangeType" class="leg-sel" onchange="rpToggleRange()">
+          <option value="year">Todo el año</option>
+          <option value="custom">Rango personalizado</option>
+        </select>
+      </div>
+      <div id="rpCustomRange" style="display:none;align-items:center;gap:6px;flex-wrap:wrap">
+        <span style="font-size:11px;color:var(--text-sub)">Desde</span>
+        <input type="date" id="rpFrom" class="leg-sel" style="padding:4px 8px" onchange="renderReportes()">
+        <span style="font-size:11px;color:var(--text-sub)">Hasta</span>
+        <input type="date" id="rpTo" class="leg-sel" style="padding:4px 8px" onchange="renderReportes()">
+      </div>
+      <button onclick="rpExportCSV()" style="margin-left:auto;font-size:11px;font-weight:700;padding:6px 12px;background:#2563c4;color:#fff;border:none;border-radius:7px;cursor:pointer">⬇ Exportar CSV</button>
+    </div>
+    <!-- Resumen del curso -->
+    <div id="rpCourseSummary" style="margin-bottom:12px"></div>
+    <!-- Tabla por alumno -->
+    <div style="overflow-x:auto;border-radius:10px;border:1px solid var(--border)">
+      <table style="width:100%;border-collapse:collapse;min-width:500px">
+        <thead id="rpThead"></thead>
+        <tbody id="rpTbody"></tbody>
       </table>
     </div>
   </div>
@@ -1613,10 +1650,15 @@ function switchView(v){
   curView=v;
   document.getElementById('asistSheet').style.display=v==='asistencia'?'':'none';
   document.getElementById('legajosView').style.display=v==='legajos'?'block':'none';
+  document.getElementById('reportesView').style.display=v==='reportes'?'block':'none';
   renderTabs();
-  if(v==='legajos'){
-    initLegajosSelectors();
-    renderLegajos();
+  if(v==='legajos'){ initLegajosSelectors(); renderLegajos(); }
+  if(v==='reportes'){
+    initReportes();
+    // Preseleccionar curso actual
+    const sel=document.getElementById('rpCourseSelect');
+    if(sel && curC && sel.querySelector(`option[value="${curC}"]`)) sel.value=curC;
+    renderReportes();
   }
 }
 
@@ -1736,12 +1778,20 @@ function renderTabs(){
   tf.className='tab tab-fest'; tf.textContent='🗓 Festivos AR';
   tf.onclick=()=>openFestivos();
   bar.appendChild(tf);
-  // Legajos al final
+  // Legajos
   const tl=document.createElement('div');
   tl.className='tab '+(curView==='legajos'?'tab-leg-on':'tab-leg');
   tl.textContent='📁 Legajos';
   tl.onclick=()=>switchView('legajos');
   bar.appendChild(tl);
+  // Reportes
+  const tr=document.createElement('div');
+  tr.className='tab '+(curView==='reportes'?'tab-leg-on':'');;
+  tr.style.cssText='background:linear-gradient(135deg,#1a5a3a,#2da44e);color:#fff;border-color:#1a8a3c';
+  if(curView==='reportes') tr.style.background='linear-gradient(135deg,#2a7a4a,#3dc45e)';
+  tr.textContent='📊 Reportes';
+  tr.onclick=()=>switchView('reportes');
+  bar.appendChild(tr);
 }
 function updateBadge(){
   document.getElementById('monthBadge').textContent=`${mName(curM)} De ${Y}`;
@@ -2132,6 +2182,205 @@ function buildSumRows(tbody,sts,days,c,y,m,dt,wd){
 }
 
 function fixFx3Left(){} // fx3 is left:0, no calculation needed
+
+// ════════════════════════════════════════════════
+// REPORTES DE ASISTENCIA
+// ════════════════════════════════════════════════
+
+// Pesos de cada estado para el cálculo de faltas
+const ATT_WEIGHT = { 0:1, 1:0.5, 2:0.25, 3:0, 4:null, 5:1 };
+// 0=Falta, 1=Tardanza s/j, 2=Tardanza j, 3=Presente, 4=Sin clases(no cuenta), 5=Falta justificada
+
+function rpGetDateRange(){
+  const type = document.getElementById('rpRangeType')?.value || 'year';
+  if(type === 'year'){
+    return { from: new Date(Y,2,1), to: new Date(Y,11,31) }; // Marzo-Diciembre
+  }
+  const fromVal = document.getElementById('rpFrom')?.value;
+  const toVal   = document.getElementById('rpTo')?.value;
+  if(!fromVal || !toVal) return null;
+  return { from: new Date(fromVal), to: new Date(toVal) };
+}
+
+function rpToggleRange(){
+  const type = document.getElementById('rpRangeType').value;
+  const el   = document.getElementById('rpCustomRange');
+  if(el) el.style.display = type==='custom' ? 'flex' : 'none';
+  renderReportes();
+}
+
+// Calcula stats de un alumno en un rango de fechas
+function rpCalcStudent(studentId, courseKey, fromDate, toDate){
+  const att    = eD().att || {};
+  let total=0, faltas=0, presente=0, tardJ=0, tardI=0, falta=0, faltaJ=0, sinReg=0;
+
+  const from = new Date(fromDate); from.setHours(0,0,0,0);
+  const to   = new Date(toDate);   to.setHours(23,59,59,999);
+
+  // Iterar mes a mes en el rango
+  let cur = new Date(from.getFullYear(), from.getMonth(), 1);
+  while(cur <= to){
+    const m  = cur.getMonth();
+    const yr = cur.getFullYear();
+    const key = `${courseKey}_${yr}_${m}`;
+    const monthAtt = att[key] || {};
+    const days = new Date(yr, m+1, 0).getDate();
+    for(let d=1; d<=days; d++){
+      const date = new Date(yr,m,d);
+      if(date < from || date > to) continue;
+      if(isWk(yr,m,d)) continue; // fin de semana
+      // ¿hay nota de sin clases?
+      const noteKey = `${m}_${yr}_${d}`;
+      const dayNotes = (eD().notes||{})[noteKey]||[];
+      const noClass  = dayNotes.some(n=>['suspension','clima','feriado','evento'].includes(n.type));
+      if(noClass) continue;
+
+      total++;
+      const stateKey = `${studentId}_${d}`;
+      const state    = monthAtt[stateKey];
+      const w        = ATT_WEIGHT[state];
+      if(state === undefined || state === null){ sinReg++; continue; }
+      if(w === null) continue; // Sin clases
+      faltas  += w;
+      if(state===3) presente++;
+      else if(state===2) tardJ++;
+      else if(state===1) tardI++;
+      else if(state===0) falta++;
+      else if(state===5) faltaJ++;
+    }
+    cur.setMonth(cur.getMonth()+1);
+  }
+  const counted  = total - sinReg;
+  const pct      = counted>0 ? Math.max(0, ((counted-faltas)/counted)*100) : null;
+  return { total, counted, faltas, pct, presente, tardJ, tardI, falta, faltaJ, sinReg };
+}
+
+function pctColor(pct){
+  if(pct===null) return 'var(--text-sub)';
+  if(pct>=75) return '#2da44e';
+  if(pct>=60) return '#e8a020';
+  return '#d63031';
+}
+
+function initReportes(){
+  const courses = getCourses();
+  const keys    = Object.keys(courses).sort((a,b)=>{
+    const yd=(courses[a].year||0)-(courses[b].year||0);
+    return yd!==0?yd:(courses[a].div||a).localeCompare(courses[b].div||b);
+  });
+  const sel = document.getElementById('rpCourseSelect');
+  if(!sel) return;
+  const prev = sel.value;
+  sel.innerHTML = keys.map(k=>`<option value="${k}">${courses[k].name||k}</option>`).join('');
+  if(prev && keys.includes(prev)) sel.value = prev;
+  renderReportes();
+}
+
+function renderReportes(){
+  const courseKey = document.getElementById('rpCourseSelect')?.value;
+  if(!courseKey) return;
+  const range = rpGetDateRange();
+  if(!range){ document.getElementById('rpTbody').innerHTML='<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text-sub)">Seleccioná un rango de fechas válido</td></tr>'; return; }
+
+  const students = (eD().students||{})[courseKey]||[];
+  const courses  = getCourses();
+  const courseName = courses[courseKey]?.name || courseKey;
+
+  // Calcular stats de cada alumno
+  const rows = students.map(st=>{
+    const s = rpCalcStudent(st.id, courseKey, range.from, range.to);
+    return { st, ...s };
+  }).sort((a,b)=>a.st.num-b.st.num);
+
+  // ─ Resumen del curso ─
+  const withData = rows.filter(r=>r.counted>0);
+  const avgPct   = withData.length ? withData.reduce((s,r)=>s+(r.pct||0),0)/withData.length : null;
+  const aprob    = withData.filter(r=>r.pct!==null&&r.pct>=75).length;
+  const riesgo   = withData.filter(r=>r.pct!==null&&r.pct<75&&r.pct>=60).length;
+  const critico  = withData.filter(r=>r.pct!==null&&r.pct<60).length;
+
+  const fromStr = range.from.toLocaleDateString('es-AR');
+  const toStr   = range.to.toLocaleDateString('es-AR');
+
+  document.getElementById('rpCourseSummary').innerHTML = `
+    <div style="background:var(--info-bar-bg);border:1px solid var(--border);border-radius:10px;padding:12px 16px;display:flex;flex-wrap:wrap;gap:14px;align-items:center">
+      <div>
+        <div style="font-size:13px;font-weight:900;color:var(--text-main)">${courseName}</div>
+        <div style="font-size:10px;color:var(--text-sub);margin-top:2px">${fromStr} → ${toStr} · ${students.length} alumnos</div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-left:auto">
+        <div style="text-align:center;padding:6px 14px;border-radius:8px;background:rgba(45,164,78,.15);border:1px solid rgba(45,164,78,.3)">
+          <div style="font-size:18px;font-weight:900;color:#2da44e">${aprob}</div>
+          <div style="font-size:9px;color:#2da44e;font-weight:700">≥75% ✓</div>
+        </div>
+        <div style="text-align:center;padding:6px 14px;border-radius:8px;background:rgba(232,160,32,.15);border:1px solid rgba(232,160,32,.3)">
+          <div style="font-size:18px;font-weight:900;color:#e8a020">${riesgo}</div>
+          <div style="font-size:9px;color:#e8a020;font-weight:700">60-74% ⚠</div>
+        </div>
+        <div style="text-align:center;padding:6px 14px;border-radius:8px;background:rgba(214,48,49,.15);border:1px solid rgba(214,48,49,.3)">
+          <div style="font-size:18px;font-weight:900;color:#d63031">${critico}</div>
+          <div style="font-size:9px;color:#d63031;font-weight:700">&lt;60% ✗</div>
+        </div>
+        ${avgPct!==null?`<div style="text-align:center;padding:6px 14px;border-radius:8px;background:var(--stats);border:1px solid var(--border)">
+          <div style="font-size:18px;font-weight:900;color:${pctColor(avgPct)}">${avgPct.toFixed(1)}%</div>
+          <div style="font-size:9px;color:var(--text-sub);font-weight:700">Promedio</div>
+        </div>`:''}
+      </div>
+    </div>`;
+
+  // ─ Cabecera tabla ─
+  document.getElementById('rpThead').innerHTML = `<tr style="background:var(--stats)">
+    <th style="padding:8px 10px;text-align:left;font-size:11px;font-weight:800;color:var(--text-sub);border-bottom:2px solid var(--border);position:sticky;left:0;background:var(--stats);min-width:30px">#</th>
+    <th style="padding:8px 10px;text-align:left;font-size:11px;font-weight:800;color:var(--text-sub);border-bottom:2px solid var(--border);position:sticky;left:30px;background:var(--stats);min-width:150px">Alumno</th>
+    <th style="padding:8px 10px;text-align:center;font-size:11px;font-weight:800;color:var(--text-sub);border-bottom:2px solid var(--border);white-space:nowrap">Días</th>
+    <th style="padding:8px 10px;text-align:center;font-size:11px;font-weight:800;color:#2da44e;border-bottom:2px solid var(--border)">✓ Pres.</th>
+    <th style="padding:8px 10px;text-align:center;font-size:11px;font-weight:800;color:#e8a020;border-bottom:2px solid var(--border)">T.J.</th>
+    <th style="padding:8px 10px;text-align:center;font-size:11px;font-weight:800;color:#c05000;border-bottom:2px solid var(--border)">T.I.</th>
+    <th style="padding:8px 10px;text-align:center;font-size:11px;font-weight:800;color:#d63031;border-bottom:2px solid var(--border)">Faltas</th>
+    <th style="padding:8px 10px;text-align:center;font-size:11px;font-weight:800;color:var(--text-sub);border-bottom:2px solid var(--border);min-width:80px">% Asist.</th>
+  </tr>`;
+
+  // ─ Filas ─
+  const thStyle = 'border-bottom:1px solid var(--border)';
+  const tdBase  = `style="padding:7px 10px;${thStyle};text-align:center;font-size:12px"`;
+  document.getElementById('rpTbody').innerHTML = rows.map((r,i)=>{
+    const bg = i%2===0?'var(--bg-row-odd)':'var(--bg-row-even)';
+    const pct = r.pct!==null ? `<span style="font-size:14px;font-weight:900;color:${pctColor(r.pct)}">${r.pct.toFixed(1)}%</span>` : '<span style="color:var(--text-sub);font-size:11px">—</span>';
+    const faltasTotal = r.falta + r.faltaJ;
+    return `<tr style="background:${bg}">
+      <td style="padding:7px 10px;${thStyle};font-size:11px;color:var(--text-sub);font-weight:700;position:sticky;left:0;background:${bg}">${String(r.st.num).padStart(2,'0')}</td>
+      <td style="padding:7px 10px;${thStyle};font-size:13px;font-weight:700;color:var(--text-main);position:sticky;left:30px;background:${bg}">${r.st.name}<br><span style="font-size:9px;font-weight:400;color:var(--text-sub);font-family:'JetBrains Mono',monospace">${r.st.code}</span></td>
+      <td ${tdBase}>${r.counted}<span style="font-size:9px;color:var(--text-sub)">/${r.total}</span></td>
+      <td ${tdBase} style="padding:7px 10px;${thStyle};text-align:center;font-size:12px;color:#2da44e;font-weight:700">${r.presente}</td>
+      <td ${tdBase} style="padding:7px 10px;${thStyle};text-align:center;font-size:12px;color:#e8a020;font-weight:700">${r.tardJ}</td>
+      <td ${tdBase} style="padding:7px 10px;${thStyle};text-align:center;font-size:12px;color:#c05000;font-weight:700">${r.tardI}</td>
+      <td ${tdBase} style="padding:7px 10px;${thStyle};text-align:center;font-size:12px;color:#d63031;font-weight:700">${faltasTotal}<span style="font-size:9px;color:var(--text-sub)">(${r.faltas.toFixed(2)})</span></td>
+      <td style="padding:7px 10px;${thStyle};text-align:center">${pct}</td>
+    </tr>`;
+  }).join('');
+}
+
+function rpExportCSV(){
+  const courseKey = document.getElementById('rpCourseSelect')?.value;
+  if(!courseKey) return;
+  const range = rpGetDateRange();
+  if(!range) return;
+  const students = (eD().students||{})[courseKey]||[];
+  const courses  = getCourses();
+  const courseName = (courses[courseKey]?.name||courseKey).replace(/,/g,' ');
+  const rows = students.map(st=>{
+    const s = rpCalcStudent(st.id, courseKey, range.from, range.to);
+    return [st.num, st.name.replace(/,/g,' '), st.code, s.counted, s.presente, s.tardJ, s.tardI, s.falta+s.faltaJ, s.faltas.toFixed(2), s.pct!==null?s.pct.toFixed(1)+'%':'—'];
+  });
+  const header = ['#','Alumno','Código','Días contados','Presente','Tard.Just','Tard.Injust','Faltas','Faltas equiv.','% Asistencia'];
+  const csv = [header, ...rows].map(r=>r.join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `Reporte_${courseName}_${Y}.csv`;
+  a.click();
+  showToast('⬇ CSV exportado');
+}
 
 function openEstConfig(){
   const max = getMaxSt();
