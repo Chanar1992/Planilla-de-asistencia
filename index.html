@@ -1297,6 +1297,25 @@ const ROLES = {
 // STATE
 // ════════════════════════════════════════════════
 let DB = loadDB();
+
+// Auto-login si venimos de un redirect OAuth
+(function autoLoginAfterOAuth(){
+  const savedSession = sessionStorage.getItem('cloud_session');
+  const pendingToken  = sessionStorage.getItem('cloud_token_ready');
+  if(!savedSession || !pendingToken) return;
+  sessionStorage.removeItem('cloud_session');
+  try{
+    const {username, password, estId} = JSON.parse(savedSession);
+    const loginUser = document.getElementById('loginUser');
+    const loginPass = document.getElementById('loginPass');
+    const loginEst  = document.getElementById('loginEstSel');
+    if(loginUser) loginUser.value = username;
+    if(loginPass) loginPass.value = password;
+    if(loginEst)  loginEst.value  = estId;
+    // Ejecutar login automáticamente
+    setTimeout(()=>doLogin(), 100);
+  }catch(e){}
+})();
 let curM = 4, curC = '1A', curEst = null, curUser = null, noteDay = new Date().getDate();
 let curView = 'asistencia'; // 'asistencia' | 'legajos'
 let legFilter = 'all';
@@ -1532,6 +1551,19 @@ function doLogin(){
     if(vc[curUser.courses[0]]){ curC=curUser.courses[0]; document.getElementById('courseSelect').value=curC; renderTable(); }
   }
   initMobile();
+  // Ejecutar upload pendiente post-OAuth si hay token guardado
+  const pendingUpload = sessionStorage.getItem('cloud_token_ready');
+  if(pendingUpload){
+    sessionStorage.removeItem('cloud_token_ready');
+    try{
+      const {svc, token} = JSON.parse(pendingUpload);
+      setTimeout(()=>{
+        if(svc==='gdrive')   gdriveDoUpload(token);
+        if(svc==='onedrive') onedriveDoUpload(token);
+        if(svc==='dropbox')  dropboxDoUpload(token);
+      }, 500);
+    }catch(e){}
+  }
 }
 function doLogout(){
   document.getElementById('loginScreen').style.display='flex';
@@ -2728,6 +2760,14 @@ function startGdriveUpload(){
   showToast('🔐 Conectando con Google Drive...','inf');
   const redirectUri=window.location.href.split('?')[0].split('#')[0].replace(/\/$/,'');
   const state='gdrive_'+Date.now();
+  // Guardar sesión actual para restaurar después del redirect
+  if(curUser && curEst){
+    sessionStorage.setItem('cloud_session', JSON.stringify({
+      username: curUser.username,
+      password: curUser.password,
+      estId: curEst.id
+    }));
+  }
   sessionStorage.setItem('cloud_pending',JSON.stringify({svc:'gdrive',state}));
   const url='https://accounts.google.com/o/oauth2/v2/auth'
     +'?client_id='+encodeURIComponent(clientId)
@@ -2932,10 +2972,9 @@ window.addEventListener('resize',()=>{ initMobile(); closeFabMenu(); });
     const pending=JSON.parse(raw);
     if(pending.state!==state) return;
     sessionStorage.removeItem('cloud_pending');
+    // Guardar token para ejecutar DESPUÉS del login
+    sessionStorage.setItem('cloud_token_ready', JSON.stringify({svc:pending.svc, token}));
     history.replaceState(null,'',window.location.pathname);
-    if(pending.svc==='gdrive')   gdriveDoUpload(token);
-    if(pending.svc==='onedrive') onedriveDoUpload(token);
-    if(pending.svc==='dropbox')  dropboxDoUpload(token);
   }catch(e){}
 })();
 function doRestore(e){
