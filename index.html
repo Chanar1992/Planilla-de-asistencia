@@ -80,6 +80,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg-page);color:var(--text-
 .hb-green{background:var(--green);color:#fff}.hb-green:hover{background:var(--green2)}
 .hb-blue{background:var(--blue);color:#fff}.hb-blue:hover{background:#1d50a8}
 .hb-orange{background:#e8a020;color:#fff}.hb-orange:hover{background:#c88010}
+.hb-gray{background:var(--stats);color:var(--text-sub);border:1px solid var(--border)}.hb-gray:hover{border-color:#8aaac8;color:var(--text-main)}
 .hb-red{background:var(--red);color:#fff}.hb-red:hover{background:#b02020}
 .hb-purple{background:var(--purple);color:#fff}.hb-purple:hover{background:#6050b0}
 
@@ -1051,7 +1052,7 @@ body.dark .tb-completo{background:rgba(45,164,78,.15)!important;color:#5ad48a!im
     </div>
     <div class="mrow">
       <div class="fg"><label>Curso</label><select class="fi" id="s_course"></select></div>
-      <div class="fg" style="flex:0 0 88px"><label>Nro. Lista</label><input class="fi" type="number" id="s_num" min="1" max="35"></div>
+      <div class="fg" style="flex:0 0 88px"><label>Nro. Lista</label><input class="fi" type="number" id="s_num" min="1" max="999"></div>
     </div>
     <div class="mfoot">
       <button class="mb mb-c" onclick="closeOv('addStudOv')">Cancelar</button>
@@ -1135,6 +1136,26 @@ body.dark .tb-completo{background:rgba(45,164,78,.15)!important;color:#5ad48a!im
 
 <!-- BACKUP OVERLAY -->
 <!-- ══════════════ BACKUP MODAL ══════════════ -->
+<div class="ov" id="estConfigOv">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-title">⚙️ Configuración del establecimiento</div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:18px">
+      <div class="fg">
+        <label>Máximo de alumnos por curso</label>
+        <div style="display:flex;align-items:center;gap:10px">
+          <input class="fi" type="number" id="cfg_maxSt" min="1" max="999" style="width:90px;text-align:center;font-size:18px;font-weight:800;font-family:'JetBrains Mono',monospace">
+          <span style="color:var(--text-sub);font-size:12px">alumnos por curso (1–999)</span>
+        </div>
+        <div style="font-size:11px;color:var(--text-sub);margin-top:6px">⚠️ Reducir este valor no elimina alumnos existentes, solo impide agregar nuevos.</div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;padding:14px 20px;border-top:1px solid var(--modal-border)">
+      <button class="mb mb-c" onclick="closeOv('estConfigOv')">Cancelar</button>
+      <button class="mb mb-s" onclick="saveEstConfig()">✓ Guardar</button>
+    </div>
+  </div>
+</div>
+
 <div class="ov" id="backupOv">
   <div class="modal" style="max-width:560px">
     <div class="modal-title">☁ Backup y Restauración</div>
@@ -1183,13 +1204,37 @@ body.dark .tb-completo{background:rgba(45,164,78,.15)!important;color:#5ad48a!im
 
     <!-- Sección: Local -->
     <div style="font-size:10px;font-weight:800;color:var(--text-sub);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">💻 Local</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px">
       <div class="bc" onclick="backupLocal()"><div class="bi">🖨</div><div class="bn">Descargar planilla</div><div class="bd">HTML imprimible</div></div>
       <div class="bc" onclick="backupJSON()"><div class="bi">💾</div><div class="bn">Backup datos</div><div class="bd">Descarga .json</div></div>
       <div class="bc" onclick="document.getElementById('restoreF').click()"><div class="bi">🔄</div><div class="bn">Restaurar</div><div class="bd">Carga .json previo</div></div>
+      <div class="bc cloud-btn" id="bcFsa" onclick="fsaPickFolder()" title="Guardar en carpeta local"><div class="bi">📁</div><div class="bn">Carpeta local</div><div class="bd cloud-status" id="stFsa">Documentos</div></div>
     </div>
 
     <input type="file" id="restoreF" accept=".json" style="display:none" onchange="doRestore(event)">
+
+    <!-- Auto-backup FSA -->
+    <div id="fsaAutoSection" style="display:none;background:var(--stats);border-radius:8px;padding:10px 14px;margin-bottom:10px;border:1px solid var(--border)">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <div>
+          <div style="font-size:11px;font-weight:800;color:var(--text-main)">📁 <span id="fsaFolderName">—</span></div>
+          <div style="font-size:10px;color:var(--text-sub);margin-top:2px">Último backup: <span id="fsaLastSave">nunca</span></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <label style="font-size:11px;color:var(--text-sub)">Auto cada</label>
+          <select class="fi" id="fsaInterval" style="width:80px;padding:3px 6px;font-size:11px" onchange="fsaSetInterval()">
+            <option value="0">Manual</option>
+            <option value="5">5 min</option>
+            <option value="10" selected>10 min</option>
+            <option value="30">30 min</option>
+            <option value="60">1 hora</option>
+          </select>
+          <button class="mb mb-s" style="padding:4px 10px;font-size:11px" onclick="fsaSaveNow()">💾 Guardar ahora</button>
+          <button class="mb mb-c" style="padding:4px 10px;font-size:11px" onclick="fsaDisconnect()">✕</button>
+        </div>
+      </div>
+    </div>
+
     <div class="mfoot"><button class="mb mb-c" onclick="closeOv('backupOv')">Cerrar</button></div>
   </div>
 </div>
@@ -1232,7 +1277,8 @@ const SICONS = ['✕','⏱','✔','●','⊘','FJ'];
 const SCLS   = ['s0','s1','s2','s3','s4','s5'];
 const STIPS  = ['No asistió','Tardanza s/just.','Tardanza just.','Puntual','Sin clases (no cuenta)','Falta justificada'];
 const STHDRS = ['Asist.','% Asist.','Faltas','F. Just.','Asist. J','Asist. I'];
-const MAX_ST = 35;
+const MAX_ST_DEFAULT = 40;
+function getMaxSt(){ return (eD()&&eD().config&&eD().config.maxStudents)||MAX_ST_DEFAULT; }
 const Y = new Date().getFullYear();
 const NOTE_CFG = {
   otro:      {label:'Otro',       color:'#8a8a9a', emoji:'✏️'},
@@ -1266,6 +1312,7 @@ function loadDB() {
       const db=JSON.parse(r);
       if(db.data) Object.keys(db.data).forEach(k=>{
         if(!db.data[k].legajos) db.data[k].legajos={};
+        if(!db.data[k].config) db.data[k].config={};
         // Migrate: add turno field to courses that don't have it
         Object.values(db.data[k].courses||{}).forEach(c=>{ if(c.turno===undefined) c.turno=''; });
       });
@@ -1502,7 +1549,8 @@ function buildHeaderBtns(){
   const showAddStudent = isAdmin() || (isProfesor() && (curUser.courses||[]).length > 0);
   if(showAddStudent) html+=`<button class="hbtn hb-ghost" onclick="openAddStudent()">＋ Alumno</button>`;
   if(canManageUsers()) html+=`<button class="hbtn hb-purple" onclick="openUsersOv()">👥 Usuarios</button>`;
-  html+=`<button class="hbtn hb-orange" onclick="openOv('backupOv')">☁ Backup</button>`;
+  if(isAdmin()) html+=`<button class="hbtn hb-gray" onclick="openEstConfig()">⚙️ Config</button>`;
+  html+=`<button class="hbtn hb-orange" onclick="openBackupOv()">☁ Backup</button>`;
   html+=`<button class="hbtn hb-blue" onclick="exportPDF()">🖨 Imprimir</button>`;
   html+=`<button class="hbtn hb-red" onclick="doLogout()">⏻ Salir</button>`;
   c.innerHTML=html;
@@ -1966,7 +2014,7 @@ function buildBody(c,y,m,days,sts,wd){
   const tbody=document.getElementById('tbody'); tbody.innerHTML='';
   const dt={}; for(let d=1;d<=days;d++) dt[d]={a:0,f:0,i:0,j:0,fj:0};
   const canEdit=canEditAtt(c);
-  for(let ri=0;ri<MAX_ST;ri++){
+  for(let ri=0;ri<getMaxSt();ri++){
     const st=sts[ri]||null; const tr=document.createElement('tr'); if(!st) tr.className='er';
     const t1=document.createElement('td'); t1.className='fx1'; t1.textContent=st?String(st.num).padStart(2,'0'):'';
     const t2=document.createElement('td'); t2.className='fx2'; t2.textContent=st?st.name:(ri<12?'—':''); if(!st) t2.style.fontSize='11px';
@@ -2036,6 +2084,21 @@ function buildSumRows(tbody,sts,days,c,y,m,dt,wd){
 }
 
 function fixFx3Left(){} // fx3 is left:0, no calculation needed
+
+function openEstConfig(){
+  const max = getMaxSt();
+  document.getElementById('cfg_maxSt').value = max;
+  openOv('estConfigOv');
+}
+function saveEstConfig(){
+  const val = parseInt(document.getElementById('cfg_maxSt').value)||40;
+  if(val<1||val>999){ showToast('Valor inválido (1–999)','err'); return; }
+  if(!eD().config) eD().config = {};
+  eD().config.maxStudents = val;
+  saveDB();
+  showToast(`Máximo actualizado: ${val} alumnos por curso`,'ok');
+  closeOv('estConfigOv');
+}
 
 function courseChipLabel(key, courses){
   const c = courses[key];
@@ -2250,7 +2313,7 @@ function saveEditStudent(){
     origList.splice(stIdx,1);
     // Add to new course
     if(!students[newCourse]) students[newCourse]=[];
-    if(students[newCourse].length>=MAX_ST){ showToast(`Máximo ${MAX_ST} alumnos en ese curso`,'err'); return; }
+    if(students[newCourse].length>=getMaxSt()){ showToast(`Máximo ${getMaxSt()} alumnos en ese curso`,'err'); return; }
     students[newCourse].push(st);
 
     // Rewrite attendance keys: origCourse_Y_m → newCourse_Y_m for this student
@@ -2297,7 +2360,7 @@ function saveStudent(){
   if(!canAddStudents(course)){ showToast('Sin permisos para agregar alumnos a este curso','err'); return; }
   const sts=eD().students;
   if(!sts[course]) sts[course]=[];
-  if(sts[course].length>=MAX_ST){ showToast(`Máximo ${MAX_ST} alumnos`,'err'); return; }
+  if(sts[course].length>=getMaxSt()){ showToast(`Máximo ${getMaxSt()} alumnos`,'err'); return; }
   sts[course].push({id:'s'+Date.now(),code,name,num});
   saveDB(); closeOv('addStudOv'); curC=course;
   document.getElementById('courseSelect').value=course;
@@ -2493,6 +2556,111 @@ function backupLocal(){
   const a=document.createElement('a'); a.href=URL.createObjectURL(b);
   a.download=filename; a.click();
   showToast('💾 Planilla descargada'); closeOv('backupOv');
+}
+
+// ════════════════════════════════════════════════
+// FILE SYSTEM ACCESS API — Backup en carpeta local
+// ════════════════════════════════════════════════
+let fsaDirHandle = null;   // handle de carpeta elegida
+let fsaTimerId   = null;   // timer de auto-backup
+let fsaSupported = ('showDirectoryPicker' in window);
+
+function fsaFilename(){
+  const d = new Date();
+  const yy = d.getFullYear();
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  return `asistCtrl_backup_${yy}-${mm}-${dd}.json`;
+}
+
+function fsaGetJson(){
+  return JSON.stringify({v:4, date:new Date().toISOString(), DB}, null, 2);
+}
+
+async function fsaPickFolder(){
+  if(!fsaSupported){
+    showToast('Tu navegador no soporta esta función. Usá Chrome o Edge.','err');
+    return;
+  }
+  try {
+    // Sugiere arrancar en Documentos
+    fsaDirHandle = await window.showDirectoryPicker({
+      id: 'asistCtrl-backup',
+      mode: 'readwrite',
+      startIn: 'documents'
+    });
+    fsaUpdateUI();
+    // Guardar inmediatamente al conectar
+    await fsaSaveNow(true);
+    showToast('📁 Carpeta conectada. Backup guardado.');
+  } catch(e) {
+    if(e.name !== 'AbortError') showToast('Error al acceder a la carpeta','err');
+  }
+}
+
+async function fsaSaveNow(silent){
+  if(!fsaDirHandle){ showToast('Primero elegí una carpeta','err'); return; }
+  try {
+    // Verificar permiso
+    const perm = await fsaDirHandle.requestPermission({mode:'readwrite'});
+    if(perm !== 'granted'){ showToast('Sin permiso de escritura','err'); return; }
+
+    const fileHandle = await fsaDirHandle.getFileHandle(fsaFilename(), {create:true});
+    const writable   = await fileHandle.createWritable();
+    await writable.write(fsaGetJson());
+    await writable.close();
+
+    const now = new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+    const el = document.getElementById('fsaLastSave');
+    if(el) el.textContent = now;
+    if(!silent) showToast('💾 Backup guardado en carpeta local');
+  } catch(e) {
+    showToast('Error al guardar: ' + e.message,'err');
+  }
+}
+
+function fsaSetInterval(){
+  if(fsaTimerId){ clearInterval(fsaTimerId); fsaTimerId=null; }
+  const sel = document.getElementById('fsaInterval');
+  const mins = parseInt(sel?.value||0);
+  if(mins > 0 && fsaDirHandle){
+    fsaTimerId = setInterval(()=>fsaSaveNow(true), mins*60*1000);
+  }
+}
+
+function fsaDisconnect(){
+  fsaDirHandle = null;
+  if(fsaTimerId){ clearInterval(fsaTimerId); fsaTimerId=null; }
+  fsaUpdateUI();
+  showToast('Carpeta desconectada');
+}
+
+function fsaUpdateUI(){
+  const section = document.getElementById('fsaAutoSection');
+  const nameEl  = document.getElementById('fsaFolderName');
+  const statusEl = document.getElementById('stFsa');
+  const btn     = document.getElementById('bcFsa');
+  if(fsaDirHandle){
+    if(section) section.style.display='block';
+    if(nameEl)  nameEl.textContent = fsaDirHandle.name;
+    if(statusEl) statusEl.textContent = fsaDirHandle.name;
+    if(btn) btn.classList.add('configured');
+    fsaSetInterval();
+  } else {
+    if(section) section.style.display='none';
+    if(statusEl) statusEl.textContent = 'Documentos';
+    if(btn) btn.classList.remove('configured');
+  }
+}
+
+// Mostrar/ocultar sección FSA al abrir el modal
+function openBackupOv(){
+  fsaUpdateUI();
+  if(!fsaSupported){
+    const btn = document.getElementById('bcFsa');
+    if(btn){ btn.style.opacity='.4'; btn.title='Requiere Chrome o Edge'; }
+  }
+  openOv('backupOv');
 }
 
 function backupJSON(){
