@@ -2726,7 +2726,7 @@ const GDRIVE_CLIENT_ID = '904704147029-dtm82cucqd5dh928me1dfrvt1hek90mn.apps.goo
 function startGdriveUpload(){
   const clientId = GDRIVE_CLIENT_ID;
   showToast('🔐 Conectando con Google Drive...','inf');
-  const redirectUri=window.location.href.split('?')[0].split('#')[0];
+  const redirectUri=window.location.href.split('?')[0].split('#')[0].replace(/\/$/,'');
   const state='gdrive_'+Date.now();
   sessionStorage.setItem('cloud_pending',JSON.stringify({svc:'gdrive',state}));
   const url='https://accounts.google.com/o/oauth2/v2/auth'
