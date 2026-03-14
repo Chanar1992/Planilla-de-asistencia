@@ -2689,7 +2689,7 @@ function cloudCfg(svc){
 }
 function cloudConfigured(svc){
   const c=cloudCfg(svc);
-  if(svc==='gdrive')   return !!c.clientId;
+  if(svc==='gdrive')   return true; // client ID hardcoded
   if(svc==='onedrive') return !!c.clientId;
   if(svc==='dropbox')  return !!c.appKey;
   if(svc==='custom')   return !!c.url;
@@ -2722,8 +2722,9 @@ function cloudUpload(svc){
 // ══════════════════════════════════════
 // GOOGLE DRIVE — OAuth2 Implicit Flow
 // ══════════════════════════════════════
+const GDRIVE_CLIENT_ID = '904704147029-dtm82cucqd5dh928me1dfrvt1hek90mn.apps.googleusercontent.com';
 function startGdriveUpload(){
-  const {clientId}=cloudCfg('gdrive');
+  const clientId = GDRIVE_CLIENT_ID;
   showToast('🔐 Conectando con Google Drive...','inf');
   const redirectUri=window.location.href.split('?')[0].split('#')[0];
   const state='gdrive_'+Date.now();
@@ -2737,32 +2738,67 @@ function startGdriveUpload(){
   window.location.href=url;
 }
 
+async function gdriveGetOrCreateFolder(token){
+  const FOLDER_NAME = 'AsistCtrl';
+  // Buscar si ya existe la carpeta
+  const q = encodeURIComponent(`name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
+  const s = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)`,
+    {headers:{Authorization:'Bearer '+token}});
+  const d = await s.json();
+  if(d.files && d.files[0]) return d.files[0].id;
+  // No existe — crearla
+  const r = await fetch('https://www.googleapis.com/drive/v3/files',{
+    method:'POST',
+    headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+    body:JSON.stringify({name:FOLDER_NAME, mimeType:'application/vnd.google-apps.folder'})
+  });
+  const f = await r.json();
+  return f.id;
+}
+
 async function gdriveDoUpload(token){
-  const html=buildPlanillaHTML();
-  if(!html){ showToast('Seleccioná un curso primero','err'); return; }
-  const filename=planillaFilename();
   showToast('☁ Subiendo a Google Drive...','inf');
-  const boundary='--asistctrl--';
-  const meta=JSON.stringify({name:filename,mimeType:'text/html'});
-  const body='--'+boundary+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'+meta+'\r\n--'+boundary+'\r\nContent-Type: text/html\r\n\r\n'+html+'\r\n--'+boundary+'--';
-  // Check existing
-  let fileId=null;
   try{
-    const s=await fetch(`https://www.googleapis.com/drive/v3/files?q=name%3D'${encodeURIComponent(filename)}'&fields=files(id)`,
+    // 1. Obtener o crear carpeta AsistCtrl
+    const folderId = await gdriveGetOrCreateFolder(token);
+    const filename = 'asistCtrl_backup_'+new Date().toISOString().slice(0,10)+'.json';
+    const fileContent = JSON.stringify({v:4,date:new Date().toISOString(),DB},null,2);
+    const boundary = '--asistctrl--';
+
+    // 2. Buscar si ya existe un archivo con ese nombre en la carpeta
+    const q = encodeURIComponent(`name='${filename}' and '${folderId}' in parents and trashed=false`);
+    const s = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id)`,
       {headers:{Authorization:'Bearer '+token}});
-    const d=await s.json();
-    if(d.files&&d.files[0]) fileId=d.files[0].id;
-  }catch(e){}
-  const method=fileId?'PATCH':'POST';
-  const apiUrl=fileId
-    ?`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`
-    :'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
-  try{
-    const r=await fetch(apiUrl,{method,headers:{Authorization:'Bearer '+token,
-      'Content-Type':'multipart/related; boundary="'+boundary+'"'},body});
-    if(r.ok) showToast('✅ Planilla subida a Google Drive');
-    else{ const e=await r.json(); showToast('Error Drive: '+(e.error&&e.error.message||r.status),'err'); }
-  }catch(e){ showToast('Error de conexión con Drive','err'); }
+    const d = await s.json();
+    const existingId = d.files && d.files[0] ? d.files[0].id : null;
+
+    // 3. Subir — PATCH si existe, POST si es nuevo
+    const meta = JSON.stringify(existingId
+      ? {name:filename}
+      : {name:filename, mimeType:'application/json', parents:[folderId]}
+    );
+    const body = '--'+boundary+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'
+      +meta+'\r\n--'+boundary+'\r\nContent-Type: application/json\r\n\r\n'
+      +fileContent+'\r\n--'+boundary+'--';
+    const method = existingId ? 'PATCH' : 'POST';
+    const apiUrl = existingId
+      ? `https://www.googleapis.com/upload/drive/v3/files/${existingId}?uploadType=multipart`
+      : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
+
+    const r = await fetch(apiUrl,{method,headers:{
+      Authorization:'Bearer '+token,
+      'Content-Type':'multipart/related; boundary="'+boundary+'"'
+    },body});
+
+    if(r.ok){
+      showToast('✅ Backup guardado en Drive → carpeta AsistCtrl');
+    } else {
+      const e = await r.json();
+      showToast('Error Drive: '+(e.error&&e.error.message||r.status),'err');
+    }
+  }catch(e){
+    showToast('Error de conexión con Drive: '+e.message,'err');
+  }
 }
 
 // ══════════════════════════════════════
@@ -3290,7 +3326,7 @@ function updateCloudBtns(){
     if(!btn||!st) return;
     const ok=cloudConfigured(svc);
     btn.classList.toggle('configured',ok);
-    if(svc==='gdrive')   st.textContent=ok?'✓ Configurado':'Requiere Client ID';
+    if(svc==='gdrive')   st.textContent='✓ Listo';
     if(svc==='onedrive') st.textContent=ok?'✓ Configurado':'Requiere Client ID';
     if(svc==='dropbox')  st.textContent=ok?'✓ Configurado':'Requiere App Key';
     if(svc==='custom')   st.textContent=ok?'✓ '+( cloudCfg('custom').label||'Configurado'):'WebDAV/URL';
