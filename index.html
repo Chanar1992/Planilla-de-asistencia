@@ -1732,6 +1732,7 @@ function renderEstList(){
         <div style="font-size:11px;color:#6b7a9a">${e.addr||'Sin dirección'}</div>
       </div>
       ${e.id===curEst.id?'<div class="est-check">✓</div>':''}
+      ${isSuperAdmin()&&e.id!==curEst.id?`<button class="icon-btn danger" style="width:26px;height:26px;font-size:12px;flex-shrink:0" onclick="event.stopPropagation();deleteEst('${e.id}')" title="Eliminar establecimiento">🗑️</button>`:''}
     </div>
   `).join('');
 }
@@ -1745,6 +1746,27 @@ function switchEst(id){
   curC='1A'; buildCourseSelect(); renderTable(); renderNotes(); renderEstList();
   closeEstOv(); showToast(`🏫 ${curEst.name}`);
 }
+function deleteEst(id){
+  const est = DB.establishments.find(e=>e.id===id);
+  if(!est){ showToast('Establecimiento no encontrado','err'); return; }
+  if(id===curEst.id){ showToast('No podés eliminar el establecimiento activo','err'); return; }
+  if(DB.establishments.length<=1){ showToast('Debe quedar al menos un establecimiento','err'); return; }
+  if(!confirm(`¿Eliminar "${est.name}"?\n\nSe eliminarán TODOS los datos: cursos, alumnos, asistencia y legajos.\nEsta acción es irreversible.`)) return;
+  // Eliminar datos
+  delete DB.data[id];
+  DB.establishments = DB.establishments.filter(e=>e.id!==id);
+  // Eliminar usuarios asignados solo a ese est
+  DB.users = DB.users.filter(u=>{
+    if(u.role==='superadmin') return true;
+    u.estIds = u.estIds.filter(e=>e!==id);
+    return u.estIds.length>0;
+  });
+  saveDB();
+  renderEstList();
+  populateLoginEst();
+  showToast(`🗑️ "${est.name}" eliminado`);
+}
+
 function addEst(){
   const name=document.getElementById('newEstName').value.trim();
   const addr=document.getElementById('newEstAddr').value.trim();
