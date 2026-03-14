@@ -1298,24 +1298,7 @@ const ROLES = {
 // ════════════════════════════════════════════════
 let DB = loadDB();
 
-// Auto-login si venimos de un redirect OAuth
-(function autoLoginAfterOAuth(){
-  const savedSession = sessionStorage.getItem('cloud_session');
-  const pendingToken  = sessionStorage.getItem('cloud_token_ready');
-  if(!savedSession || !pendingToken) return;
-  sessionStorage.removeItem('cloud_session');
-  try{
-    const {username, password, estId} = JSON.parse(savedSession);
-    const loginUser = document.getElementById('loginUser');
-    const loginPass = document.getElementById('loginPass');
-    const loginEst  = document.getElementById('loginEstSel');
-    if(loginUser) loginUser.value = username;
-    if(loginPass) loginPass.value = password;
-    if(loginEst)  loginEst.value  = estId;
-    // Ejecutar login automáticamente
-    setTimeout(()=>doLogin(), 100);
-  }catch(e){}
-})();
+// autoLoginAfterOAuth moved to INIT section
 let curM = 4, curC = '1A', curEst = null, curUser = null, noteDay = new Date().getDate();
 let curView = 'asistencia'; // 'asistencia' | 'legajos'
 let legFilter = 'all';
@@ -3844,6 +3827,24 @@ function toggleDark(){
 // INIT
 // ════════════════════════════════════════════════
 populateLoginEst();
+
+// Auto-login si venimos de un redirect OAuth (debe ir DESPUÉS de populateLoginEst)
+(function autoLoginAfterOAuth(){
+  const savedSession = sessionStorage.getItem('cloud_session');
+  const pendingToken  = sessionStorage.getItem('cloud_token_ready');
+  if(!savedSession || !pendingToken) return;
+  sessionStorage.removeItem('cloud_session');
+  try{
+    const {username, password, estId} = JSON.parse(savedSession);
+    const loginUser = document.getElementById('loginUser');
+    const loginPass = document.getElementById('loginPass');
+    const loginEst  = document.getElementById('loginEstSel');
+    if(loginUser) loginUser.value = username;
+    if(loginPass) loginPass.value = password;
+    if(loginEst)  loginEst.value  = estId;
+    setTimeout(()=>doLogin(), 150);
+  }catch(e){}
+})();
 </script>
 </body>
 </html>
